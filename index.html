@@ -1891,8 +1891,12 @@ function nowSection(doc, p3) {
     hd.append(ico(p.icon), t, el("span", "sc " + scoreBand(s), s == null ? "—" : String(s)));
     card.append(hd);
     const bad = cs.filter(c => c.status === "problem" || c.status === "watch");
-    card.append(el("p", "ph2-say", bad.length ? "先看：" + bad.slice(0, 2).map(c => (rowOf[c.id] || {}).title || c.label).join("、")
-      : cs.some(c => c.status === "ok") ? "这一段都在职业区间里。" : "这一段还没有能测准的检查，正在补。"));
+    const name = c => (rowOf[c.id] || {}).title || c.label;
+    // Measured but set aside is not the same as never measured: say which, and point at the reason.
+    card.append(el("p", "ph2-say", bad.length ? "先看：" + bad.slice(0, 2).map(name).join("、")
+      : cs.some(c => c.status === "ok") ? "这一段都在职业区间里。"
+      : cs.length ? `这一段量了${cs.map(name).join("、")}，但这次不计分，原因在下面「这次没评」里。`
+      : "这一段还没有能测准的检查。"));
     if (p.oneView) {
       card.append(el("p", "todo", "节奏只看时间，哪个角度拍的都能测。"));
     } else {
