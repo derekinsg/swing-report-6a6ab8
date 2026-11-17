@@ -1,0 +1,2457 @@
+<!doctype html>
+<html lang="zh-Hans" style="color-scheme: dark">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caddie Note 挥杆报告</title>
+<!--
+  Caddie Note 专业报告 (Pro Max). One static night page that builds itself from a ReportDoc
+  (docs/report-product/report-doc.md, built by ReportDocBuilder): window.caddieReportDoc when set, else report_doc.js
+  next to this file (works from a file URL), else report_doc.json. Pictures come from media/, icons from icons/, drill
+  pictures from tools/ and the number face (Bricolage Grotesque, OFL) from fonts/; ReportMaker.writePage copies them.
+  No network. Every sentence is in doc.narrative; this page only lays it out and draws the charts from the doc's numbers.
+-->
+<style>
+@font-face { font-family: "Bricolage Grotesque"; src: url(fonts/bricolage.woff2) format("woff2"); font-weight: 200 800; font-display: swap }
+:root {
+  color-scheme: light;
+  --ground: #F4F4F1; --surface: #FFFFFF; --fill: #F5F5F0; --hair: #E3E3DE;
+  --ink: #161B18; --muted: #6B726D; --faint: #A3A9A5;
+  --accent: #1D5A3E; --accent-2: #3D8A5F; --tint: #E9F1EB;
+  --fault: #B0533C; --fault-bg: #F7E6E1; --watch: #9A6514; --watch-bg: #F8EDD8; --unsure: #B8BDB8;
+  --ref: #2F6FB3; --ref-soft: #DCE7F3;
+  --text: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Helvetica Neue", sans-serif;
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+}
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 64px) }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.6 var(--text); -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom, 0px) }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground) }
+img { max-width: 100%; display: block }
+p { margin: 0 }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 600 }
+.num { font-variant-numeric: tabular-nums; letter-spacing: -.02em }
+.mute { color: var(--muted) }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: rgba(244, 244, 241, .92);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px); border-bottom: 1px solid var(--hair) }
+.bar .in { max-width: 760px; margin: 0 auto; padding: 10px var(--gutter-r) 10px var(--gutter-l); display: flex; align-items: center; gap: 10px }
+.cn-mark { width: 30px; height: 30px; flex: none }
+.wm { font-weight: 800; font-size: 18px; letter-spacing: -.02em; transform: skewX(-10deg); white-space: nowrap }
+.bar .date { margin-left: auto; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
+
+main { max-width: 760px; margin: 0 auto; padding: 16px var(--gutter-r) 64px var(--gutter-l); display: flex; flex-direction: column; gap: 14px }
+.card { background: var(--surface); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.sec { display: flex; align-items: center; gap: 12px; margin-top: 22px }
+.sec .no { width: 34px; height: 34px; border-radius: 11px; background: var(--tint); color: var(--accent); display: grid; place-items: center; font-weight: 600; flex: none }
+.sec h2 { font-size: 24px; line-height: 1.25 }
+.lead { color: var(--muted); font-size: 15px }
+
+/* hero */
+.hero { padding: 0; overflow: hidden; gap: 0 }
+.hero .ph { width: 100%; aspect-ratio: 4 / 5; max-height: 60vh; background: #1E2420; overflow: hidden }
+.hero .ph img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 70% }
+.hero .in { padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 10px }
+.hero .eyebrow { font-size: 13px; letter-spacing: .12em; color: var(--accent); font-weight: 600 }
+.hero h1 { font-size: 34px; line-height: 1.2; white-space: pre-line }
+.hero .line { color: var(--muted) }
+.hero .counts { font-size: 15px; color: var(--muted) }
+.chips { display: flex; gap: 8px; flex-wrap: wrap }
+.chip { font-size: 13px; padding: 3px 10px; border-radius: 99px; background: var(--fill) }
+.chip.p { background: var(--fault-bg); color: var(--fault) }
+.chip.w { background: var(--watch-bg); color: var(--watch) }
+.chip.o { background: var(--tint); color: var(--accent) }
+
+.nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.nums b { display: block; font-size: 40px; line-height: 1.1; font-weight: 700 }
+.nums span { font-size: 13px; color: var(--muted) }
+.basis { flex-direction: row; align-items: flex-start; gap: 12px; font-size: 15px }
+.basis .ic { width: 30px; height: 30px; border-radius: 50%; background: var(--tint); color: var(--accent); display: grid; place-items: center; flex: none; font-weight: 700 }
+
+/* score */
+.score { background: var(--accent); color: #fff }
+.score .top { display: flex; align-items: baseline; gap: 6px }
+.score .top b { font-size: 64px; line-height: 1; font-weight: 700 }
+.score .top span { opacity: .75 }
+.score .sub { opacity: .75; font-size: 14px }
+.score .t { font-size: 13px; letter-spacing: .12em; opacity: .8 }
+.cats { display: flex; flex-direction: column; gap: 12px; margin-top: 4px }
+.cat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline }
+.cat .l { font-weight: 600 }
+.cat .s { font-size: 22px; font-weight: 700 }
+.cat .note { grid-column: 1 / -1; font-size: 13px; opacity: .78 }
+.cat .track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .18); overflow: hidden }
+.cat .track i { display: block; height: 100%; background: #CFE8D6; border-radius: 3px }
+
+.ol { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px }
+.ol a { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--fill); color: var(--ink); text-decoration: none; min-width: 0 }
+.ol a b { color: var(--accent); width: 18px; text-align: center; flex: none }
+.ol a span { display: flex; flex-direction: column; min-width: 0 }
+.ol a small { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+
+/* look-alikes */
+.lk h3 { font-size: 18px }
+.lk h4 { font-size: 15px; margin: 14px 0 8px }
+.lineup { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px }
+.lineup figure { margin: 0 auto; width: 100%; max-width: 128px; position: relative }
+.lineup figure img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: fill; border-radius: 8px; background: #1E2420 }
+.lineup figure svg { position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 4 / 5; height: auto }
+.lineup figcaption { font-size: 11px; line-height: 1.35; color: var(--ink); padding-top: 4px }
+.lineup figure.you figcaption { color: var(--fault); font-weight: 600 }
+.lk-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 96px auto; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--hair) }
+.lk-row .i { color: var(--muted); font-size: 13px; text-align: center }
+.lk-row .nm { display: flex; flex-direction: column; min-width: 0 }
+.lk-row .nm small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.lk-row .v { font-weight: 600; font-size: 15px; text-align: right; white-space: nowrap }
+.lk-row.you .v, .lk-row.you .nm b { color: var(--fault) }
+.lk-row svg { width: 96px; height: 14px; overflow: visible }
+
+/* findings */
+.fd { display: flex; flex-direction: column; gap: 8px }
+.fd-i { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--fill) }
+.fd-i.root { background: var(--fault-bg) }
+.fd-i .no { font-weight: 700; color: var(--fault); width: 26px; flex: none }
+.fd-i.downstream .no, .fd-i.later .no { color: var(--muted) }
+.fd-i b { display: block; line-height: 1.4 }
+.fd-i small { color: var(--muted); font-size: 13px }
+.fd-i p { margin: 8px 0 0; font-size: 14px; line-height: 1.65; color: var(--ink) }
+.fd-i > div { flex: 1; min-width: 0 }
+.fd-i > .explain { flex: 1 0 100%; min-width: 0; display: flex; flex-direction: column; gap: 10px; background: var(--surface); border-radius: 14px; padding: 12px }
+.see { display: block; background: var(--tint); color: var(--accent); border-radius: 14px; padding: 10px 14px; font-size: 14px; text-decoration: none }
+.loop { display: flex; flex-direction: column; gap: 8px }
+.loop .stage { position: relative; border-radius: 14px; overflow: hidden; background: #1E2420; cursor: pointer }
+.loop .stage > img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover }
+.loop .inset { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px }
+.loop .inset img { width: 96px; height: auto; border-radius: 8px; border: 2px solid rgba(255, 255, 255, .85); display: block }
+.loop .inset span, .loop .pos, .loop .state { font-size: 12px; color: #fff; background: rgba(0, 0, 0, .55); padding: 2px 8px; border-radius: 99px }
+.loop .pos { position: absolute; left: 8px; top: 8px }
+.loop .trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
+.loop .state { position: absolute; left: 8px; bottom: 8px }
+.loop .state:empty { display: none }
+.did { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 12px; align-items: center; background: var(--tint); border-radius: 14px; padding: 10px }
+.did figure { margin: 0; position: relative; border-radius: 12px; overflow: hidden; background: #1E2420 }
+.did figure img { width: 100%; aspect-ratio: 4 / 5; object-fit: fill; display: block }
+.did figure svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.did figcaption { position: absolute; left: 6px; top: 6px; font-size: 11px; color: #fff; background: rgba(0, 0, 0, .55); padding: 1px 6px; border-radius: 99px }
+.did b { color: var(--accent); display: block }
+.did p { margin: 4px 0 0; font-size: 14px; line-height: 1.6; color: var(--ink) }
+.fd .arrow { text-align: center; color: var(--muted); line-height: 1 }
+.note { background: var(--tint); color: var(--accent); border-radius: 14px; padding: 12px 14px; font-size: 15px }
+
+/* checks */
+.legend { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted) }
+.grp-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap }
+.grp-hd h3 { font-size: 20px }
+.grp-hd small { color: var(--muted) }
+.cmp figure { margin: 0; position: relative; overflow: hidden; background: #1E2420 }
+.cmp figure img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: fill }
+.cmp figure svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.cmp figure.you { border-radius: 14px; max-width: 420px; margin: 0 auto }
+.cmp figure.you > figcaption { position: absolute; left: 8px; top: 8px; right: 140px; width: fit-content; font-size: 12px; color: #fff; background: rgba(0, 0, 0, .55); padding: 2px 8px; border-radius: 99px }
+.cmp figure.pro { position: absolute; top: 8px; right: 8px; width: 104px; border-radius: 8px; border: 2px solid rgba(255, 255, 255, .9) }
+.cmp figure.pro figcaption { display: block; font-size: 11px; line-height: 1.35; color: #fff; background: rgba(0, 0, 0, .72); padding: 2px 6px }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px }
+.pair figure { margin: 0; position: relative; border-radius: 14px; overflow: hidden; background: #1E2420 }
+.pair figure img { width: 100%; aspect-ratio: 4 / 5; object-fit: fill }
+.pair figure svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.pair figcaption { position: absolute; left: 8px; top: 8px; right: 8px; width: fit-content; font-size: 12px; color: #fff; background: rgba(0, 0, 0, .55); padding: 2px 8px; border-radius: 99px }
+.phases { display: flex; gap: 6px }
+.phases button { font: inherit; font-size: 13px; border: 0; border-radius: 99px; padding: 4px 12px; background: var(--fill); color: var(--ink) }
+.phases button.on { background: var(--accent); color: #fff }
+.strip-box { display: flex; flex-direction: column; gap: 6px }
+.strip-box .t { font-size: 14px; font-weight: 600 }
+.strip { width: 100%; height: auto; overflow: visible }
+.strip text { font: 11px var(--text); fill: var(--muted) }
+.strip-box .out { font-size: 14px }
+.strip-box .out b { color: var(--fault); font-size: 18px }
+.tool-hint { display: flex; align-items: center; gap: 12px; background: var(--tint); border-radius: 14px; padding: 12px 14px; color: var(--ink); text-decoration: none }
+.tool-hint small { color: var(--accent); font-weight: 600; display: block; font-size: 12px }
+.rows { display: flex; flex-direction: column }
+.row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 0; border-top: 1px solid var(--hair); align-items: baseline }
+.row .m { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; align-self: center }
+.row.problem .m { background: var(--fault); color: #fff }
+.row.watch .m { background: var(--watch-bg); color: var(--watch) }
+.row.ok .m { background: var(--tint); color: var(--accent) }
+.row.excluded .m { background: var(--fill); color: var(--muted) }
+.row .ti { font-weight: 600; min-width: 0 }
+.row .bd { font-size: 13px; white-space: nowrap }
+.row.problem .bd { color: var(--fault) }
+.row.watch .bd { color: var(--watch) }
+.row.ok .bd { color: var(--accent) }
+.row.excluded .bd { color: var(--muted) }
+.row .ln { grid-column: 2 / -1; font-size: 13px; color: var(--muted) }
+.lock { background: var(--fill); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px }
+.lock .hd { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink) }
+.lock .hd svg { width: 14px; height: 14px; flex: none; fill: var(--muted) }
+.lock .hd small { font-weight: 400; color: var(--muted); font-size: 13px }
+.lock > p { margin: 0; font-size: 13px; color: var(--muted) }
+.lock a { color: var(--accent); font-size: 13px; font-weight: 600; text-decoration: none }
+.guide { margin: 4px 0 0; display: flex; flex-direction: column; gap: 8px }
+.guide .pic { position: relative }
+.guide img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 12px; background: var(--tint) }
+.guide img.mirror { transform: scaleX(-1) }
+.guide .hand { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12px; font-weight: 600; border: 0; border-radius: 99px; padding: 4px 10px; background: var(--surface); color: var(--accent); opacity: .92; cursor: pointer }
+.guide b { font-size: 14px; color: var(--accent) }
+.guide ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink) }
+.guide .note { font-size: 13px; color: var(--watch) }
+
+/* plan */
+.tool-pics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 }
+.tool-pics > p { grid-column: 1 / -1; margin: 0 }
+.tool-pics figure, .photo-grid figure { margin: 0; position: relative; border-radius: 12px; overflow: hidden; background: #1E2420 }
+.tool-pics figure img, .photo-grid figure img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: fill }
+.tool-pics figure svg, .photo-grid figure svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.tool-pics figcaption, .photo-grid figcaption { position: absolute; left: 6px; top: 6px; right: 6px; width: fit-content; font-size: 11px; color: #fff; background: rgba(0, 0, 0, .55); padding: 1px 6px; border-radius: 99px }
+.photo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 8px 0 }
+.tc-pair { display: flex; flex-direction: column; gap: 10px; padding-top: 4px }
+.tc-pair h4 { font-size: 15px; margin: 4px 0 0 }
+.tc-lines { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 1.5 }
+.unsure .u-i { padding: 10px 0; border-top: 1px solid var(--hair) }
+.unsure .u-i:first-child { border-top: 0 }
+.unsure .u-i b { display: block; font-size: 15px }
+.unsure .u-i p { margin: 4px 0 0; font-size: 14px; line-height: 1.6; color: var(--muted) }
+.tool .tag { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .06em }
+.tool h3 { font-size: 19px; line-height: 1.35 }
+.tool ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; counter-reset: s }
+.tool li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; font-size: 15px; counter-increment: s }
+.tool li::before { content: counter(s); width: 24px; height: 24px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; font-size: 13px; font-weight: 600 }
+.metro { display: flex; flex-direction: column; gap: 10px; background: var(--fill); border-radius: 14px; padding: 14px }
+.metro .btns { display: flex; gap: 8px; flex-wrap: wrap }
+.metro button { font: inherit; font-size: 14px; border: 0; border-radius: 99px; padding: 8px 16px; background: var(--accent); color: #fff }
+.metro button.alt { background: var(--surface); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.beats { display: flex; gap: 6px }
+.beats i { width: 18px; height: 18px; border-radius: 50%; background: var(--hair); transition: background .08s }
+.beats i.on { background: var(--accent) }
+.beats i.hit.on { background: var(--fault) }
+.ss { display: flex; flex-direction: column; gap: 8px }
+.s-i { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 4px 12px; padding: 12px 14px; border-radius: 14px; background: var(--fill) }
+.s-i .wk { font-size: 12px; color: var(--muted); line-height: 1.3 }
+.s-i .wk b { display: block; font-size: 16px; color: var(--ink) }
+.s-i .what { font-size: 15px }
+.s-i .tl { grid-column: 2; font-size: 13px; color: var(--muted) }
+.s-i .ps { grid-column: 2; font-size: 13px; color: var(--accent); font-weight: 600 }
+.s-i.rt { background: var(--tint) }
+
+/* retest */
+.rt-i { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid var(--hair) }
+.rt-i b { font-size: 16px }
+.rt-i .lb { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px }
+.rt-i .lb .now { color: var(--fault) }
+.rt-i .lb .tg { color: var(--accent); font-weight: 600 }
+.rt-i .lb .pr { color: var(--ref) }
+.rt-i svg { width: 100%; height: 28px; overflow: visible }
+
+footer { color: var(--muted); font-size: 13px; padding: 8px 4px }
+.empty { color: var(--muted); padding: 40px 0; text-align: center }
+
+/* the coach's order: verdict, basis, now, why, fix, retest */
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 104px) }
+.secbar { max-width: 760px; margin: 0 auto; padding: 0 var(--gutter-r) 8px var(--gutter-l); display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none }
+.secbar::-webkit-scrollbar { display: none }
+.secbar a { flex: none; font-size: 14px; padding: 5px 12px; border-radius: 99px; color: var(--muted); text-decoration: none; background: transparent; transition: background .2s, color .2s }
+.secbar a.on { background: var(--accent); color: #fff }
+.part { display: flex; flex-direction: column; gap: 12px }
+.part > .sec { margin-top: 18px }
+.part:first-child > .sec { margin-top: 4px }
+.mini-score { margin-left: auto; display: flex; align-items: baseline; gap: 4px; color: var(--accent) }
+.mini-score b { font-size: 22px; font-weight: 700 }
+.mini-score span { font-size: 12px; color: var(--muted) }
+.order { background: var(--tint); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px }
+.order .k, .look .k { font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--accent) }
+.order p { font-size: 15px; color: var(--ink) }
+
+details.fold { border-top: 1px solid var(--hair); margin: 0 -4px; padding: 0 4px }
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px 0 2px; font-size: 14px; font-weight: 600; color: var(--accent) }
+details.fold > summary::-webkit-details-marker { display: none }
+details.fold > summary::after { content: ""; width: 7px; height: 7px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg) translateY(-2px); margin-left: auto; transition: transform .25s }
+details.fold[open] > summary::after { transform: rotate(-135deg) translateY(-2px) }
+.fold-in { display: flex; flex-direction: column; gap: 12px; padding: 10px 0 4px; font-size: 14px; animation: drop .25s ease }
+@keyframes drop { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
+.fold-in > p { line-height: 1.7 }
+.fold-in .card { padding: 0; background: none }
+
+.phase { gap: 10px }
+.ph-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 10px }
+.ph-hd h3 { font-size: 19px }
+.ph-hd .s { font-size: 26px; font-weight: 700 }
+.ph-hd .s.good, .track i.good { color: var(--accent) }
+.ph-hd .s.mid { color: var(--watch) }
+.ph-hd .s.bad { color: var(--fault) }
+.phase .track { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden }
+.phase .track i { display: block; height: 100%; border-radius: 3px; background: var(--accent-2) }
+.phase .track i.mid { background: #D9A441 }
+.phase .track i.bad { background: var(--fault) }
+.small { font-size: 13px }
+.phase .rows .row:first-child { border-top: 0 }
+
+.look p { font-size: 15px }
+.fd-i > .cmp { flex: 1 0 100%; min-width: 0 }
+.fd-i > details.fold { flex: 1 0 100%; border-top-color: rgba(0, 0, 0, .08) }
+.fd-i .fold-in .strip-box, .fd-i .fold-in .did { background: var(--surface); border-radius: 14px; padding: 10px }
+
+.fix { display: flex; flex-direction: column; gap: 10px; margin-top: 6px }
+.fix-hd { display: flex; align-items: center; gap: 10px }
+.fix-hd h3 { font-size: 19px; line-height: 1.35 }
+.fix-hd .tag { flex: none; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: var(--fill); color: var(--muted) }
+.fix-hd .tag.root { background: var(--fault-bg); color: var(--fault) }
+.change { font-size: 15px; background: var(--surface); border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; padding: 10px 14px }
+.tool-art { width: 100%; border-radius: 14px; background: var(--tint); aspect-ratio: 3 / 2; object-fit: cover }
+.tool .why { font-size: 15px }
+.tool .why b, .pass b { color: var(--accent) }
+.pass { font-size: 15px; background: var(--tint); border-radius: 12px; padding: 10px 14px }
+.more h3 { font-size: 17px }
+.part .hero .ph { aspect-ratio: 4 / 3; max-height: 44vh }
+.part .hero .ph img { object-position: 50% 35% }
+
+/* design pass: a report, not a list of cards */
+:root {
+  --ground: #F2F3EE; --hair: #E4E6E0; --fill: #F4F5F0;
+  --deep: #0E2A1D; --grass: #9BE15D; --amber: #C98A1E;
+  --num: ui-serif, "New York", "Iowan Old Style", "Palatino", Georgia, serif;
+  --lift: 0 1px 0 rgba(22, 27, 24, .03), 0 18px 40px -22px rgba(22, 27, 24, .22);
+}
+body { font-size: 16px; line-height: 1.65 }
+main { gap: 16px; padding-top: 0 }
+.card { border-radius: 22px; box-shadow: var(--lift); padding: 22px }
+.num { font-family: var(--num); font-weight: 500; letter-spacing: -.01em }
+
+/* top bar and section tabs */
+.bar { background: rgba(242, 243, 238, .86); border-bottom-color: transparent; box-shadow: 0 1px 0 var(--hair) }
+.secbar { gap: 2px; padding-bottom: 0 }
+.secbar a { border-radius: 0; padding: 8px 12px 10px; font-size: 14px; color: var(--muted); position: relative; background: none }
+.secbar a::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2px; border-radius: 2px; background: var(--accent); transform: scaleX(0); transition: transform .25s ease }
+.secbar a.on { background: none; color: var(--ink); font-weight: 600 }
+.secbar a.on::after { transform: scaleX(1) }
+
+/* section openers */
+.part { gap: 14px }
+.part > .sec { margin: 40px 0 2px; padding-top: 22px; border-top: 1px solid var(--hair); align-items: baseline; gap: 14px }
+.sec .no { width: auto; height: auto; background: none; border-radius: 0; font-family: var(--num); font-weight: 400; font-size: 30px; line-height: 1; color: var(--accent-2); letter-spacing: -.02em }
+.sec h2 { font-size: 25px; letter-spacing: .01em }
+.part > .lead { font-size: 15px; line-height: 1.75; color: var(--muted); max-width: 34em; margin-top: -4px }
+
+/* cover */
+.cover { margin: 0 calc(-1 * var(--gutter-r)) 0 calc(-1 * var(--gutter-l)); gap: 0 }
+.cv-pic { position: relative; aspect-ratio: 4 / 5; max-height: 72vh; background: var(--deep); overflow: hidden }
+.cv-pic img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 60% }
+.cv-pic::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(14, 42, 29, .35) 0%, rgba(14, 42, 29, 0) 22%, rgba(14, 42, 29, 0) 45%, rgba(14, 42, 29, .88) 100%) }
+.cv-top { position: absolute; z-index: 1; top: 16px; left: var(--gutter-l); right: var(--gutter-r); display: flex; justify-content: space-between; gap: 12px; color: rgba(255, 255, 255, .92); font-size: 12px; letter-spacing: .16em }
+.cv-top span:last-child { letter-spacing: .04em; opacity: .85 }
+.cv-title { position: absolute; z-index: 1; left: var(--gutter-l); right: var(--gutter-r); bottom: 44px; display: flex; flex-direction: column; gap: 10px; color: #fff }
+.cv-title .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; letter-spacing: .18em; color: var(--grass); font-weight: 600 }
+.cv-title .eyebrow::before { content: ""; width: 18px; height: 2px; border-radius: 2px; background: var(--grass) }
+.cv-title h1 { font-size: 36px; line-height: 1.18; letter-spacing: .01em; white-space: pre-line; text-shadow: 0 2px 18px rgba(0, 0, 0, .25) }
+.cv-sheet { position: relative; z-index: 2; margin: -24px var(--gutter-r) 0 var(--gutter-l); background: var(--surface); border-radius: 24px; box-shadow: var(--lift); padding: 24px 22px 22px; display: flex; flex-direction: column; gap: 20px }
+.cv-sheet .line { font-size: 16px; line-height: 1.75; color: var(--ink) }
+.cv-stats { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 18px; align-items: center }
+.ring { position: relative; width: 96px; height: 96px }
+.ring svg { width: 100%; height: 100% }
+.ring .c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1 }
+.ring .c b { font-family: var(--num); font-weight: 500; font-size: 34px; color: var(--accent) }
+.ring .c small { font-size: 11px; color: var(--muted); letter-spacing: .1em; margin-top: 4px }
+.counts3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) }
+.counts3 div { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; border-left: 1px solid var(--hair) }
+.counts3 b { font-family: var(--num); font-weight: 500; font-size: 30px; line-height: 1 }
+.counts3 span { font-size: 12px; color: var(--muted); letter-spacing: .08em }
+.counts3 .p b { color: var(--fault) } .counts3 .w b { color: var(--amber) } .counts3 .o b { color: var(--accent) }
+.order { background: none; border-radius: 0; padding: 16px 0 0; border-top: 1px solid var(--hair); gap: 6px }
+.order .k, .look .k { font-size: 12px; letter-spacing: .16em; color: var(--accent-2) }
+.order p { font-size: 16px; line-height: 1.75 }
+
+/* basis */
+.nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 }
+.nums > div { padding: 0 12px; border-left: 1px solid var(--hair) }
+.nums > div:first-child { padding-left: 0; border-left: 0 }
+.nums b { font-family: var(--num); font-weight: 400; font-size: 42px; color: var(--ink) }
+.nums span { font-size: 12px; letter-spacing: .06em }
+
+/* phases at a glance */
+.glance { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; padding: 18px 16px 16px }
+.glance a { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: var(--ink); min-width: 0 }
+.glance .gl { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.glance b { font-family: var(--num); font-weight: 500; font-size: 26px; line-height: 1 }
+.glance b.good { color: var(--accent) } .glance b.mid { color: var(--amber) } .glance b.bad { color: var(--fault) } .glance b.na { color: var(--faint); font-size: 20px }
+.glance i { height: 4px; border-radius: 2px; background: var(--hair); position: relative; overflow: hidden }
+.glance i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: 2px; background: var(--c) }
+
+.phase { gap: 12px }
+.ph-hd { align-items: center }
+.ph-hd .ph-no { font-family: var(--num); font-size: 13px; color: var(--faint); letter-spacing: .08em; margin-right: -2px }
+.ph-hd h3 { font-size: 19px; margin-right: auto }
+.ph-hd .s { font-family: var(--num); font-weight: 500; font-size: 32px; line-height: 1 }
+.ph-hd .s.mid { color: var(--amber) }
+.phase .track { height: 4px; border-radius: 2px }
+.phase .track i.mid { background: var(--amber) }
+.phase .track i.good { background: var(--accent) }
+.phase > p.mute.small { margin-top: -4px }
+.row { grid-template-columns: 14px minmax(0, 1fr) auto; padding: 12px 0; gap: 3px 10px }
+.row .m { width: 8px; height: 8px; font-size: 0; align-self: center; justify-self: center; margin-top: 0 }
+.row.problem .m { background: var(--fault) }
+.row.watch .m { background: var(--amber) }
+.row.ok .m { background: var(--accent-2) }
+.row .ti { font-weight: 500; font-size: 15px }
+.row .bd { font-size: 12px; padding: 2px 8px; border-radius: 99px; align-self: center }
+.row.problem .bd { background: var(--fault-bg) }
+.row.watch .bd { background: var(--watch-bg); color: var(--watch) }
+.row.ok .bd { background: var(--tint) }
+.row .ln { font-size: 13px; line-height: 1.6 }
+
+/* folds */
+details.fold { margin: 0; padding: 0 }
+details.fold > summary { padding: 14px 0 4px; font-size: 14px; font-weight: 500; color: var(--accent) }
+details.fold > summary::after { width: 22px; height: 22px; border: 0; border-radius: 50%; transform: none; background: var(--tint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%231D5A3E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat; transition: transform .25s }
+details.fold[open] > summary::after { transform: rotate(180deg) }
+
+/* findings */
+#s-why .card.fd { background: none; box-shadow: none; padding: 0; gap: 0 }
+.fd .arrow { height: 26px; width: 1px; margin: 0 auto; background: var(--hair); font-size: 0 }
+.fd-i { background: var(--surface); border-radius: 22px; box-shadow: var(--lift); padding: 20px; gap: 14px; position: relative; overflow: hidden }
+.fd-i.root { background: var(--surface) }
+.fd-i.root::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--fault) }
+.fd-i .no { font-family: var(--num); font-weight: 400; font-size: 34px; line-height: 1; width: auto; min-width: 44px; color: var(--fault) }
+.fd-i.downstream .no, .fd-i.later .no { color: var(--accent-2) }
+.fd-i b { font-size: 18px; line-height: 1.4; font-weight: 600 }
+.fd-i small { display: block; margin-top: 4px; font-size: 13px; line-height: 1.6 }
+.fd-i .role { display: inline-block; font-size: 11px; letter-spacing: .14em; font-weight: 600; color: var(--muted); margin-bottom: 4px }
+.fd-i.root .role { color: var(--fault) }
+.fd-i > .cmp figure.you { border-radius: 16px; max-width: none }
+.fd .note { display: none }
+.look { gap: 10px }
+.look p { line-height: 1.75 }
+
+/* how to fix */
+.fix { gap: 12px; margin-top: 18px }
+.fix-hd { flex-direction: column; align-items: flex-start; gap: 6px }
+.fix .tag { background: none; padding: 0; border-radius: 0; font-size: 12px; letter-spacing: .14em; color: var(--accent-2) }
+.fix .tag.root { background: none; color: var(--fault) }
+.fix-hd h3 { font-size: 22px; line-height: 1.35 }
+.change { position: relative; background: none; border: 0; border-radius: 0; padding: 4px 0 4px 26px; font-size: 16px; line-height: 1.75; color: var(--ink) }
+.change::before { content: "“"; position: absolute; left: 0; top: -6px; font-family: var(--num); font-size: 40px; line-height: 1; color: var(--grass) }
+.card.tool { padding: 0; overflow: hidden; gap: 0 }
+.card.tool > * { margin-left: 22px; margin-right: 22px }
+.card.tool > .tool-art { margin: 0 0 18px; width: 100%; border-radius: 0; aspect-ratio: 3 / 2 }
+.card.tool > .tag { margin-bottom: 4px; letter-spacing: .14em; color: var(--accent-2) }
+.card.tool > h3 { font-size: 19px; margin-bottom: 14px }
+.card.tool > .why { background: var(--fill); border-radius: 16px; padding: 14px 16px; font-size: 15px; line-height: 1.7; margin-bottom: 18px }
+.card.tool > .why b { display: block; font-size: 12px; letter-spacing: .12em; color: var(--accent-2); margin-bottom: 2px; font-weight: 600 }
+.card.tool > ol { gap: 0; margin-bottom: 18px }
+.tool li { grid-template-columns: 26px minmax(0, 1fr); gap: 14px; padding-bottom: 14px; position: relative; line-height: 1.6 }
+.tool li:last-child { padding-bottom: 0 }
+.tool li::before { width: 26px; height: 26px; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent-2); color: var(--accent); font-family: var(--num); font-size: 14px; font-weight: 500; position: relative; z-index: 1 }
+.tool li:not(:last-child)::after { content: ""; position: absolute; left: 12.5px; top: 28px; bottom: 2px; width: 1px; background: var(--hair) }
+.card.tool > .pass { display: block; position: relative; padding-left: 52px !important; background: var(--tint); border-radius: 16px; padding: 14px 16px; margin-bottom: 18px; line-height: 1.7 }
+.card.tool > .pass::before { content: ""; position: absolute; left: 16px; top: 14px; width: 22px; height: 22px; margin-top: 2px; border-radius: 50%; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2 5.2 8.4 9 4' fill='none' stroke='%23fff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat }
+.card.tool > .pass b { display: block; font-size: 12px; letter-spacing: .12em; color: var(--accent) }
+.card.tool > .metro { margin-bottom: 18px }
+.card.tool > details.fold { border-top: 1px solid var(--hair); padding-bottom: 14px }
+.card.tool > *:last-child { margin-bottom: 18px }
+.card.tool > details.fold:last-child { margin-bottom: 4px }
+
+/* retest */
+.rt-i { padding: 14px 0 }
+.rt-i:first-child { border-top: 0; padding-top: 0 }
+.rt-i b { font-size: 16px; font-weight: 600 }
+.rt-i .lb span { padding: 2px 8px; border-radius: 99px; background: var(--fill) }
+.rt-i .lb .now { background: var(--fault-bg) }
+.rt-i .lb .tg { background: var(--tint) }
+.rt-i .lb .pr { background: var(--ref-soft) }
+
+/* appendix and sign-off */
+.more h3 { font-size: 13px; letter-spacing: .16em; color: var(--muted); font-weight: 600 }
+.sign { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 0 8px; color: var(--muted) }
+.sign .lock-up { display: flex; align-items: center; gap: 8px; color: var(--ink) }
+.sign .lock-up svg { width: 30px; height: 30px }
+.sign .lock-up span { font-weight: 800; font-size: 19px; letter-spacing: -.02em; transform: skewX(-10deg) }
+.sign p { font-size: 12px; letter-spacing: .2em }
+
+
+/* design pass 2: one sheet with the app bar, one row of sections, fewer boxes */
+:root { --ground: #F5F6F2 }
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px) }
+.bar { background: rgba(245, 246, 242, .9); box-shadow: none; transition: box-shadow .25s ease-out }
+.bar.scrolled { box-shadow: 0 1px 0 var(--hair) }
+.bar .in { display: none }
+.secbar { position: relative; justify-content: space-between; gap: 0; overflow: visible; padding: 0 var(--gutter-r) 0 var(--gutter-l) }
+.secbar a { padding: 13px 2px 12px; font-size: 14px; letter-spacing: .02em; color: var(--faint); transition: color .2s ease-out }
+.secbar a::after { display: none }
+.secbar a.on { color: var(--ink); font-weight: 600 }
+.secbar .ind { position: absolute; bottom: 6px; height: 2px; border-radius: 2px; background: var(--accent); transition: left .3s ease-out, width .3s ease-out; pointer-events: none }
+
+/* cover: brand and date ride on the photo */
+.cv-top { align-items: center; letter-spacing: 0; font-size: 12px }
+.cv-top .brand { display: flex; align-items: center; gap: 6px; color: #fff }
+.cv-top .brand svg { width: 20px; height: 20px }
+.cv-top .brand svg path { fill: #fff }
+.cv-top .brand svg circle { fill: var(--grass) }
+.cv-top .brand b { font-weight: 800; font-size: 14px; letter-spacing: -.02em; transform: skewX(-10deg) }
+.cv-top .date { opacity: .8; letter-spacing: .04em }
+.cv-title .kind { font-size: 12px; letter-spacing: .24em; color: rgba(255, 255, 255, .72) }
+
+/* fewer boxes: numbers, the phase glance, look-alikes and the appendix sit on the paper */
+.card.flat { background: none; box-shadow: none; padding: 4px 0 0; border-radius: 0 }
+.card.flat details.fold { border-top-color: var(--hair) }
+.glance.flat { padding: 6px 0 4px }
+.look.flat > p { font-size: 15px; color: var(--ink) }
+.more.flat h3 { margin-bottom: -2px }
+
+/* photo labels: smoky glass, not black pills */
+.cmp figure.you > figcaption, .pair figcaption, .did figcaption, .tool-pics figcaption, .photo-grid figcaption {
+  background: rgba(22, 26, 24, .42); -webkit-backdrop-filter: blur(10px) saturate(1.4); backdrop-filter: blur(10px) saturate(1.4);
+  font-size: 12px; letter-spacing: .02em; padding: 3px 10px; border-radius: 99px }
+.cmp figure.pro { border: 0; border-radius: 12px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85), 0 10px 24px -8px rgba(0, 0, 0, .45) }
+.cmp figure.pro figcaption { background: rgba(22, 26, 24, .55); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); font-size: 11px; padding: 3px 8px }
+
+/* retest: three labelled values in a row */
+.rt-i .lb.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 }
+.rt-i .lb.trio span { background: none; padding: 0 0 0 12px; border-radius: 0; border-left: 1px solid var(--hair); display: flex; flex-direction: column; gap: 2px; color: var(--muted); font-size: 12px; letter-spacing: .06em }
+.rt-i .lb.trio span:first-child { padding-left: 0; border-left: 0 }
+.rt-i .lb.trio span b { font-family: var(--num); font-weight: 500; font-size: 22px; letter-spacing: 0; line-height: 1.2 }
+.rt-i .lb.trio .now b { color: var(--fault) } .rt-i .lb.trio .tg b { color: var(--accent) } .rt-i .lb.trio .pr b { color: var(--ref) }
+.rt-i { gap: 10px }
+
+
+/* details */
+:root { --num: ui-serif, "New York", "Iowan Old Style", Georgia, "PingFang SC", "Hiragino Sans GB", sans-serif }
+.part > .sec { margin-top: 30px }
+.rt-i .lb.trio span b { font-size: 20px; white-space: nowrap }
+
+/* phases: a swing arc, and a small ring per phase */
+.glance { padding: 8px 6px 18px; display: block }
+.glance svg { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; overflow: visible }
+.glance a { cursor: pointer }
+.glance .gn { font: 500 12.5px var(--text); fill: var(--muted); letter-spacing: .06em }
+.glance .gv { font-family: var(--num); font-size: 26px; font-weight: 500; letter-spacing: -.01em }
+.glance .gv.good { fill: var(--accent) } .glance .gv.mid { fill: var(--amber) } .glance .gv.bad { fill: var(--fault) } .glance .gv.na { fill: var(--faint); font-size: 20px }
+.ph-hd { display: grid; grid-template-columns: auto minmax(0, 1fr) 56px; align-items: center; gap: 0 12px }
+.ph-hd .ph-no { align-self: start; margin-top: 4px }
+.ph-t { display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.ph-t h3 { font-size: 19px; margin: 0 }
+.ph-t p { font-size: 13px; color: var(--muted); line-height: 1.5 }
+.meter { position: relative; width: 56px; height: 56px }
+.meter svg { width: 100%; height: 100% }
+.meter b { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--num); font-weight: 500; font-size: 19px; letter-spacing: -.01em }
+.meter.good b { color: var(--accent) } .meter.mid b { color: var(--amber) } .meter.bad b { color: var(--fault) } .meter.na b { color: var(--faint) }
+.phase .rows { margin-top: 2px }
+
+/* per-swing dots instead of 「N 杆超」 */
+.row .dots { display: flex; gap: 4px; align-self: center; justify-self: end }
+.row .dots i { width: 7px; height: 7px; border-radius: 50%; box-shadow: inset 0 0 0 1.2px var(--unsure) }
+.row.problem .dots i.out { background: var(--fault); box-shadow: none }
+.row.watch .dots i.out { background: var(--amber); box-shadow: none }
+.row.ok .dots i.out { background: var(--faint); box-shadow: none }
+.row .cnt { grid-column: 2 / -1; font-size: 13px; font-weight: 500 }
+.row.problem .cnt { color: var(--fault) } .row.watch .cnt { color: var(--watch) } .row.ok .cnt { color: var(--muted) }
+
+.row .spread { grid-column: 2 / -1; width: 100%; height: auto; margin: 4px 0 0; overflow: visible }
+.row .spread .bl { font: 500 9.5px var(--text); fill: var(--accent-2); letter-spacing: .1em }
+
+/* cause chain */
+.chain { display: flex; flex-direction: column; padding: 4px 0 6px }
+.ch-i { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 0 14px; text-decoration: none; color: var(--ink); position: relative; padding-bottom: 22px }
+.ch-i:last-child { padding-bottom: 0 }
+.ch-i:not(:last-child)::before { content: ""; position: absolute; left: 23.5px; top: 46px; bottom: 4px; width: 1px; background: repeating-linear-gradient(180deg, var(--faint) 0 3px, transparent 3px 7px) }
+.ch-i:not(:last-child)::after { content: ""; position: absolute; left: 20px; bottom: 4px; width: 6px; height: 6px; border-right: 1.3px solid var(--faint); border-bottom: 1.3px solid var(--faint); transform: rotate(45deg) }
+.ch-n { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-family: var(--num); font-size: 19px; font-weight: 500; box-shadow: inset 0 0 0 1.5px var(--accent-2); color: var(--accent); background: var(--surface) }
+.ch-i.root .ch-n { background: var(--fault); color: #fff; box-shadow: 0 8px 18px -8px rgba(176, 83, 60, .7) }
+.ch-i.later .ch-n { box-shadow: inset 0 0 0 1.5px var(--unsure); color: var(--muted) }
+.ch-t { display: flex; flex-direction: column; gap: 1px; padding-top: 3px; min-width: 0 }
+.ch-t small { font-size: 11px; letter-spacing: .16em; font-weight: 600; color: var(--accent-2) }
+.ch-i.root .ch-t small { color: var(--fault) }
+.ch-i.later .ch-t small { color: var(--muted) }
+.ch-t b { font-size: 17px; font-weight: 600; line-height: 1.4 }
+.ch-t em { font-style: normal; font-size: 13px; color: var(--muted) }
+
+/* two-week path */
+.path { gap: 16px }
+.pa-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 12px }
+.pa-hd b { font-size: 17px }
+.pa-hd a { font-size: 13px; color: var(--accent); text-decoration: none; font-weight: 500; white-space: nowrap }
+.pa-row { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 10px; align-items: start }
+.pa-w { font-size: 12px; letter-spacing: .08em; color: var(--muted); padding-top: 10px; white-space: nowrap }
+.pa-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); position: relative }
+.pa-track::before { content: ""; position: absolute; left: 18px; right: calc(33.3% - 18px); top: 17px; height: 1.5px; background: var(--hair) }
+.pa-s { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: var(--ink); min-width: 0; position: relative }
+.pa-n { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent-2); font-family: var(--num); font-size: 17px; color: var(--accent) }
+.pa-s.end .pa-n { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px var(--tint) }
+.pa-tl { font-size: 12px; line-height: 1.45; color: var(--muted); padding-right: 6px }
+
+/* retest */
+.rt-i .goal { width: 100%; height: auto; overflow: visible }
+.rt-i .goal text { font: 500 10px var(--text); letter-spacing: .1em }
+.rt-i .goal .nw { fill: var(--fault) } .rt-i .goal .tg { fill: var(--accent) } .rt-i .goal .pr { fill: var(--ref) }
+
+/* no kickers, no tracked small labels, no decorative marks */
+.card.tool > .tag, .fix .tag, .cv-title .eyebrow { display: none }
+.change { padding: 0; font-size: 16px; font-weight: 500 }
+.change::before { content: none }
+.card.tool > .why { font-size: 15px }
+.card.tool > .pass { padding: 14px 16px !important }
+.card.tool > .pass::before { content: none }
+.card.tool > .pass b { display: inline; font-size: inherit; letter-spacing: 0; color: var(--accent); font-weight: 600 }
+.counts3 span, .ring .c small, .nums span, .glance .gn, .pa-w, .cv-top, .cv-top .date, .order .k, .look .k { letter-spacing: 0 }
+.counts3 span, .ring .c small, .nums span { font-size: 13px }
+.glance .gn { font-size: 13px }
+.pa-w { font-size: 13px }
+.pa-tl { font-size: 13px }
+.ch-t em { font-size: 14px }
+.order { padding-top: 16px }
+.goal { margin-bottom: -10px }
+.part > .sec { gap: 0 }
+.sec h2 { font-size: 24px }
+.ch-t { padding-top: 10px }
+
+/* type: PingFang for the words, Bricolage Grotesque for numbers and Latin */
+:root { --num: "Bricolage Grotesque", -apple-system, "PingFang SC", sans-serif }
+:is(.ring .c b, .counts3 b, .nums b, .glance .gv, .meter b, .fd-i .no, .ch-n, .pa-n, .rt-i .lb.trio span b) { font-weight: 500; font-variation-settings: "opsz" 72; letter-spacing: -.03em }
+.cv-top .brand b { font-family: "Bricolage Grotesque", sans-serif; transform: none; font-variation-settings: "opsz" 96 }
+
+/* night: the professional report is a night page, so it reads apart from the white basic report */
+:root {
+  color-scheme: dark;
+  --ground: #0B1310; --surface: #131D18; --fill: #1A2520; --hair: #24302A;
+  --ink: #EDF1EC; --muted: #9AA59F; --faint: #66726B; --unsure: #4C5852;
+  --accent: #9BE15D; --accent-2: #6FBF6A; --tint: #18271B;
+  --fault: #F07A5E; --fault-bg: #2E1C17; --watch: #E8B04A; --watch-bg: #2A2416; --amber: #E8B04A;
+  --ref: #6FA8F0; --ref-soft: #172437;
+  --deep: #050B08; --grass: #9BE15D;
+  --lift: 0 0 0 1px rgba(255, 255, 255, .045), 0 22px 44px -26px rgba(0, 0, 0, .7);
+}
+html, body { background: var(--ground) }
+.bar, .bar.scrolled { background: rgba(11, 19, 16, .86); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2) }
+.cv-pic::after { background: linear-gradient(180deg, rgba(5, 11, 8, .45) 0%, rgba(5, 11, 8, 0) 22%, rgba(5, 11, 8, 0) 42%, rgba(11, 19, 16, .92) 92%, #0B1310 100%) }
+.cv-sheet { box-shadow: 0 0 0 1px rgba(255, 255, 255, .05), 0 30px 60px -30px rgba(0, 0, 0, .8) }
+details.fold > summary::after { background: var(--tint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%239BE15D' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat }
+.fd-i > details.fold { border-top-color: var(--hair) }
+.phases button.on, .metro button:not(.alt), .pa-s.end .pa-n { color: #0B1310 }
+.ch-i.root .ch-n { color: #1A0C08; box-shadow: 0 0 22px -4px rgba(240, 122, 94, .55) }
+.pa-s.end .pa-n { box-shadow: 0 0 0 4px rgba(155, 225, 93, .14), 0 0 20px -2px rgba(155, 225, 93, .45) }
+.cmp figure.pro { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7), 0 10px 24px -8px rgba(0, 0, 0, .6) }
+.tool-art { filter: brightness(.92) saturate(.95) }
+.phase .track i.mid { background: var(--amber) }
+.sign .lock-up svg path { fill: var(--ink) } .sign .lock-up svg circle { fill: var(--grass) }
+.sign .lock-up span { font-family: "Bricolage Grotesque", sans-serif; transform: none; font-variation-settings: "opsz" 96 }
+.sign p { font-size: 13px; letter-spacing: .04em }
+
+/* icons: clay tiles from the icon sheets */
+.ico { display: block; flex: none; object-fit: cover; border-radius: 12px; background: #1B2822 }
+.card .ico, .fd-i .ico { background: #202E27 }
+.part > .sec { display: flex; align-items: center; gap: 12px }
+.sec .ico { width: 44px; height: 44px; border-radius: 13px }
+.ph-hd .ico { width: 52px; height: 52px; border-radius: 15px }
+.ph-hd .ph-t { margin-right: auto }
+.ph-hd h3 { margin-right: 0 }
+.nums .ico { width: 40px; height: 40px; border-radius: 11px; margin-bottom: 10px }
+details.fold > summary .ico { width: 30px; height: 30px; border-radius: 9px }
+details.fold > summary > span { flex: 1; min-width: 0 }
+
+/* Pro Max wordmark on the cover */
+.cv-title .pm { font-family: "Bricolage Grotesque", sans-serif; font-variation-settings: "opsz" 96; font-size: 30px; line-height: 1; letter-spacing: -.035em }
+
+/* cover: the report's name, not the finding */
+.cv-title .pm { font-size: 52px; font-weight: 800; letter-spacing: -.045em; background: linear-gradient(100deg, #E9FFD2 0%, #9BE15D 45%, #4FBF6A 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 18px rgba(155, 225, 93, .45)); width: fit-content; padding-right: 4px }
+.cv-title h1 { font-size: 28px; font-weight: 600; letter-spacing: .04em }
+.cv-title { gap: 8px }
+.cv-name { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap }
+.cv-name .date { font-family: var(--num); font-size: 17px; color: rgba(255, 255, 255, .72); letter-spacing: 0 }
+
+/* a finding through the swing: moving side by side, its moments side by side, every swing as proof */
+.rich { display: flex; flex-direction: column; gap: 16px; min-width: 0 }
+.rich-t { display: flex; flex-direction: column; gap: 2px }
+.rich-t b { font-size: 15px }
+.rich-t span { font-size: 12px; color: var(--muted); line-height: 1.5 }
+.duet { display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.duet .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; cursor: pointer }
+.duet .pane { position: relative; border-radius: 12px; overflow: hidden; background: #1E2420; aspect-ratio: 4 / 5 }
+.duet .pane > img { width: 100%; height: 100%; object-fit: cover; display: block }
+.duet .sprite { position: absolute; inset: 0; background-repeat: no-repeat }
+.duet .tag { position: absolute; left: 6px; top: 6px; max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: #fff; background: rgba(0, 0, 0, .6); padding: 1px 7px; border-radius: 99px }
+.duet .state { position: absolute; left: 6px; bottom: 6px; font-size: 11px; color: #fff; background: rgba(0, 0, 0, .6); padding: 1px 7px; border-radius: 99px }
+.duet .state:empty { display: none }
+.duet .steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px }
+.duet .steps span { font-size: 10px; text-align: center; color: var(--faint); padding-top: 5px; border-top: 2px solid var(--hair); white-space: nowrap; overflow: hidden }
+.duet .steps span.on { color: var(--grass, var(--accent)); border-top-color: var(--grass, var(--accent)) }
+.pgrid { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; min-width: 0 }
+.pgrid .who { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: 2px }
+.pgrid figure, .proof figure { margin: 0; position: relative; border-radius: 10px; overflow: hidden; background: #1E2420; min-width: 0 }
+.pgrid figure img, .proof figure img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: fill }
+.pgrid figure svg, .proof figure svg { position: absolute; inset: 0 auto auto 0; width: 100%; aspect-ratio: 4 / 5; height: auto }
+.pgrid figcaption, .proof figcaption { font-size: 11px; line-height: 1.35; padding: 4px 5px 5px; color: #E8ECE9; white-space: pre-line }
+.proof { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; min-width: 0 }
+
+/* 你的挥杆现状: each phase with both cameras side by side, then one list of its checks; every swing behind a button */
+.ico.sm { display: inline-block; width: 18px; height: 18px; border-radius: 0; background: none; vertical-align: -4px; margin-right: 3px; object-fit: contain }
+.ico.xs { display: inline-block; width: 14px; height: 14px; border-radius: 0; background: none; vertical-align: -2px; margin-right: 2px; object-fit: contain }
+.ph2 { margin: 0 0 18px; padding: 18px 16px 8px; border-radius: 22px; background: var(--surface); box-shadow: var(--lift) }
+.ph2-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 4px }
+.ph2-hd .ico { width: 46px; height: 46px; border-radius: 12px; background: #202E27 }
+.ph2-hd h3 { margin: 0; font-size: 22px; letter-spacing: .02em }
+.ph2-hd .when { color: var(--muted); font-size: 13px }
+.ph2-hd .sc { margin-left: auto; font: 500 26px/1 var(--num); letter-spacing: -.03em }
+.ph2-hd .sc.good { color: var(--accent) } .ph2-hd .sc.mid { color: var(--watch) } .ph2-hd .sc.bad { color: var(--fault) } .ph2-hd .sc.na { color: var(--faint) }
+.ph2-say { margin: 6px 0 12px; font-size: 15px; color: var(--ink) }
+.cams { display: flex; gap: 6px; margin: 0 0 12px }
+.cams span { font-size: 12px; padding: 2px 10px 2px 6px; border-radius: 99px; background: var(--tint); color: var(--accent) }
+.cams span.off { background: var(--fill); color: var(--faint) }
+.pair2 { display: grid; grid-template-columns: repeat(var(--c), minmax(0, 1fr)); gap: 6px; margin: 4px 0 12px }
+.pair2 figure { margin: 0; position: relative; border-radius: 12px; overflow: hidden; background: #1E2420 }
+.pair2 figure img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: fill }
+.pair2 figure svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.pair2 figure figcaption { position: absolute; left: 6px; top: 6px; max-width: calc(100% - 12px); font-size: 11px; line-height: 1.4; color: #fff; background: rgba(0, 0, 0, .58); padding: 1px 7px; border-radius: 99px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.pair2 figure.pro { box-shadow: inset 0 0 0 1.5px rgba(155, 225, 93, .35) }
+.pair2 .pc-h { font-size: 14px; font-weight: 600; text-align: center; color: var(--ink); padding: 2px 0 }
+.pc-none { display: grid; place-items: center; aspect-ratio: 4 / 5; border-radius: 12px; background: var(--fill); color: var(--faint); font-size: 12px; text-align: center; padding: 8px }
+.vt { display: inline-flex; align-items: center; font-size: 11px; padding: 0 6px 0 3px; margin-right: 6px; border-radius: 6px; background: var(--fill); color: var(--muted); vertical-align: 2px; font-weight: 400; white-space: nowrap }
+.hc { margin: 4px 0 8px; padding: 10px 12px; border-radius: 14px; background: var(--fill); font-size: 14px }
+.hc h5 { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 500 }
+.hc p { margin: 4px 0 }
+.r2 { padding: 10px 0; border-top: 1px solid var(--hair) }
+.r2-top { display: flex; align-items: center; gap: 4px }
+.r2-top b { font-weight: 600; font-size: 15px }
+.chip { margin-left: auto; font-size: 12px; padding: 1px 9px 1px 5px; border-radius: 99px; white-space: nowrap; display: inline-flex; align-items: center }
+.chip.problem { background: var(--fault-bg); color: var(--fault) } .chip.watch { background: var(--watch-bg); color: var(--watch) }
+.chip.ok { background: var(--tint); color: var(--accent) } .chip.excluded { background: var(--fill); color: var(--faint) }
+.r2-tally { font-size: 13px; color: var(--muted); margin-top: 2px }
+.r2-num { font-size: 13px; color: var(--muted) }
+.r2 svg.spread { display: block; width: 100%; height: 26px; margin: 4px 0 2px }
+.r2 svg.spread circle.hit { cursor: pointer }
+.todo { font-size: 13px; color: var(--faint); margin: 2px 0 8px }
+.every { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 10px 0 8px; padding: 12px; border: 1px solid rgba(155, 225, 93, .35); border-radius: 14px; background: var(--tint); color: var(--accent); font: 600 15px/1.2 var(--text); cursor: pointer }
+.every .ico { width: 24px; height: 24px; background: none; border-radius: 0; object-fit: contain }
+.every small { font-weight: 400; color: var(--muted) }
+.sheet { position: fixed; inset: 0; z-index: 50; background: var(--ground); overflow-y: auto; display: none; -webkit-overflow-scrolling: touch }
+.sheet.on { display: block }
+.sh-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; padding: max(14px, env(safe-area-inset-top, 0px)) var(--gutter-r) 10px var(--gutter-l); background: var(--ground); border-bottom: 1px solid var(--hair) }
+.sh-bar h4 { margin: 0; font-size: 18px }
+.sh-bar .x { margin-left: auto; width: 32px; height: 32px; border-radius: 99px; border: 0; background: var(--fill); color: var(--ink); font-size: 18px }
+.sh-bar .back { border: 0; background: none; color: var(--accent); font-size: 15px; padding: 0 }
+.tabs { display: flex; gap: 6px; padding: 10px var(--gutter-r) 4px var(--gutter-l) }
+.tabs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px; padding: 8px 0; border-radius: 10px; border: 0; background: var(--fill); color: var(--muted); font-size: 14px }
+.tabs button.on { background: var(--tint); color: var(--accent); font-weight: 600 }
+.only { display: flex; align-items: center; gap: 6px; padding: 6px var(--gutter-r) 8px var(--gutter-l); font-size: 13px; color: var(--muted) }
+.only input { accent-color: #9BE15D }
+.sw { display: flex; gap: 12px; padding: 10px var(--gutter-r) 10px var(--gutter-l); border-top: 1px solid var(--hair); cursor: pointer }
+.sw > img, .sw > .noimg { width: 76px; height: 95px; object-fit: cover; border-radius: 10px; flex: none; background: #1E2420 }
+.sw-b { flex: 1; min-width: 0 }
+.sw-t { display: flex; align-items: center; gap: 8px; margin-bottom: 4px }
+.sw-t b { font-size: 15px }
+.sw-t span { font-size: 12px; color: var(--faint) }
+.sw-t i { margin-left: auto; font-style: normal; font-size: 12px; padding: 0 8px 0 4px; border-radius: 99px; display: inline-flex; align-items: center; white-space: nowrap }
+.sw-t i.bad { background: var(--fault-bg); color: var(--fault) } .sw-t i.good { background: var(--tint); color: var(--accent) }
+.vals { display: flex; flex-wrap: wrap; gap: 4px 6px }
+.vals span { font-size: 12px; padding: 1px 7px; border-radius: 7px; background: var(--fill); color: var(--muted) }
+.vals span.out { background: var(--fault-bg); color: var(--fault) }
+.player { padding: 12px var(--gutter-r) 30px var(--gutter-l) }
+.player video, .player .still { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 16px; background: #000 }
+.ctl { display: flex; gap: 6px; margin: 10px 0 4px; flex-wrap: wrap }
+.ctl button { flex: 1; min-width: 52px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; border-radius: 10px; border: 0; background: var(--fill); color: var(--ink); font-size: 12px }
+.ctl button .ico { width: 22px; height: 22px; border-radius: 6px }
+.ctl button.on { background: var(--tint); color: var(--accent); font-weight: 600 }
+.ctl.speed button { flex: 0 0 auto; flex-direction: row; padding: 6px 12px 6px 8px; color: var(--muted) }
+.ctl.speed button.on { color: var(--accent) }
+.nav2 { display: flex; justify-content: space-between; margin: 6px 0 10px }
+.nav2 button { border: 0; background: none; color: var(--accent); font-size: 14px; padding: 4px 0 }
+.pg h5 { margin: 14px 0 6px; font-size: 13px; color: var(--muted); font-weight: 500 }
+.pv { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--hair); font-size: 14px }
+.pv em { display: block; font-style: normal; color: var(--faint); font-size: 12px }
+.pv b { font-weight: 600; white-space: nowrap; font-family: var(--num) } .pv b.out { color: var(--fault) } .pv b.ok { color: var(--accent) }
+</style>
+</head>
+<body>
+<header class="bar"><div class="in">
+  <svg class="cn-mark" viewBox="0 0 100 100" role="img" aria-label="Caddie Note"><defs><mask id="cnc0" maskUnits="userSpaceOnUse" x="-20" y="-20" width="140" height="140"><rect x="-20" y="-20" width="140" height="140" fill="#fff"/><path d="M23.8 60.9 A27.0 27.0 0 0 0 60.3 68.4" stroke="#000" stroke-width="3.2" stroke-linecap="round" fill="none"/></mask></defs><path id="cn-arc" fill="#161B18" mask="url(#cnc0)"/><circle cx="84.0" cy="39.5" r="14.0" fill="#1D5A3E"/></svg>
+  <span class="wm">caddie note</span>
+  <span class="date" id="date"></span>
+</div><nav class="secbar"></nav></header>
+<main id="main"><p class="empty">正在读取报告…</p></main>
+<script>
+"use strict";
+// The mark's arc, kept out of the markup above so it stays readable.
+document.getElementById("cn-arc").setAttribute("d", "M69.8 25.6 L68.7 24.4 L67.7 23.2 L66.5 22.0 L65.3 21.0 L64.1 19.9 L62.8 19.0 L61.5 18.1 L60.1 17.2 L58.7 16.4 L57.2 15.7 L55.7 15.1 L54.1 14.6 L52.6 14.1 L51.0 13.7 L49.3 13.3 L47.7 13.1 L46.0 13.0 L44.4 12.9 L42.7 12.9 L41.0 13.0 L39.3 13.2 L37.6 13.4 L36.0 13.8 L34.3 14.2 L32.7 14.8 L31.1 15.4 L29.5 16.1 L27.9 16.8 L26.4 17.7 L24.9 18.6 L23.5 19.6 L22.1 20.7 L20.8 21.9 L19.5 23.1 L18.3 24.4 L17.1 25.8 L16.0 27.3 L15.0 28.8 L14.1 30.3 L13.2 31.9 L12.4 33.6 L11.7 35.3 L11.1 37.0 L10.5 38.8 L10.1 40.6 L9.8 42.4 L9.5 44.3 L9.3 46.1 L9.3 48.0 L9.3 49.9 L9.4 51.8 L9.7 53.7 L10.0 55.6 L10.4 57.5 L10.9 59.4 L11.5 61.2 L12.2 63.0 L13.1 64.8 L14.0 66.6 L15.0 68.3 L16.0 69.9 L17.2 71.5 L18.5 73.1 L19.8 74.6 L21.2 76.0 L22.7 77.4 L24.3 78.7 L26.0 79.9 L27.7 81.0 L29.4 82.0 L31.3 83.0 L33.2 83.8 L35.1 84.6 L37.1 85.3 L39.1 85.8 L41.2 86.3 L43.3 86.7 L45.4 86.9 L47.5 87.1 L49.6 87.1 L51.8 87.0 L53.9 86.8 L56.1 86.5 L58.2 86.1 L60.4 85.6 L62.5 85.0 L64.5 84.2 L66.6 83.4 L68.6 82.4 L70.5 81.4 L72.4 80.2 L74.3 78.9 L76.1 77.6 L77.8 76.1 L79.5 74.5 L81.1 72.9 L52.2 54.0 L51.9 54.4 L51.5 54.9 L51.1 55.3 L50.7 55.7 L50.3 56.0 L49.8 56.4 L49.4 56.7 L48.8 57.0 L48.3 57.3 L47.8 57.6 L47.2 57.9 L46.6 58.1 L46.0 58.2 L45.4 58.4 L44.7 58.5 L44.1 58.6 L43.4 58.7 L42.7 58.7 L42.1 58.7 L41.4 58.6 L40.7 58.5 L40.0 58.4 L39.3 58.3 L38.6 58.1 L37.9 57.8 L37.2 57.5 L36.6 57.2 L35.9 56.9 L35.2 56.5 L34.6 56.1 L34.0 55.6 L33.4 55.1 L32.8 54.6 L32.2 54.0 L31.7 53.4 L31.2 52.8 L30.7 52.1 L30.3 51.4 L29.9 50.7 L29.5 50.0 L29.1 49.2 L28.8 48.4 L28.6 47.6 L28.3 46.8 L28.1 45.9 L28.0 45.0 L27.9 44.2 L27.8 43.3 L27.8 42.4 L27.8 41.5 L27.9 40.5 L28.0 39.6 L28.2 38.7 L28.4 37.8 L28.7 36.9 L29.0 36.0 L29.4 35.1 L29.8 34.3 L30.2 33.4 L30.7 32.6 L31.3 31.7 L31.8 30.9 L32.5 30.2 L33.1 29.4 L33.9 28.7 L34.6 28.0 L35.4 27.4 L36.2 26.8 L37.1 26.2 L38.0 25.7 L38.9 25.2 L39.9 24.8 L40.8 24.4 L41.8 24.0 L42.9 23.7 L43.9 23.5 L45.0 23.3 L46.0 23.2 L47.1 23.1 L48.2 23.1 L49.3 23.1 L50.4 23.2 L51.5 23.3 L52.6 23.5 L53.7 23.7 L54.8 24.0 L55.9 24.4 L56.9 24.8 L58.0 25.3 L59.0 25.8 L60.0 26.4 L60.9 27.0 L61.8 27.7 L62.7 28.4 L63.6 29.2 L64.4 30.1 A3.5 3.5 0 0 0 69.8 25.6 Z");
+
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+};
+const svg = (tag, attrs) => {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+};
+const C = { fault: "#F07A5E", accent: "#9BE15D", ref: "#6FA8F0", band: "#1F3A24", dot: "#66726B", ink: "#EDF1EC" };
+
+// One axis for a set of numbers with a band: [lo, hi] padded so dots never sit on the edge.
+function axis(xs) {
+  const v = xs.filter(x => x != null && isFinite(x));
+  let lo = Math.min(...v), hi = Math.max(...v);
+  if (lo === hi) { lo -= 1; hi += 1 }
+  const pad = (hi - lo) * 0.08;
+  return [lo - pad, hi + pad];
+}
+
+function section(no, title, anchor, lead) {
+  const wrap = el("div");
+  wrap.id = anchor;
+  const hd = el("div", "sec");
+  hd.append(el("span", "no", String(no)), el("h2", null, title));
+  wrap.append(hd);
+  if (lead) wrap.append(el("p", "lead", lead));
+  return wrap;
+}
+
+function media(doc, f) { return (doc.media || []).filter(m => m.file && Object.keys(f).every(k => m[k] === f[k])) }
+
+// Checks by id, for a figure to tell whether the value it shows is outside the pros' band.
+let CHECKS = {};
+
+// On the photo: brighter than the page's colours, so they read on grass and night alike.
+const ON = { bad: "#E0573C", good: "#3DD68C", plain: "#FFFFFF", ref: "#5B9BE6" };
+const CLUB = "#9BE15D";
+
+// Whether a frame's value lies outside the pros' 80% band on the check's problem side; null for a frame with no value.
+function outside(item) {
+  const c = CHECKS[item.check];
+  if (!c || item.value == null) return null;
+  const v = c.views.find(x => x.video === item.video) || c.views[0];
+  if (!v || !v.pro) return null;
+  const x = item.value, lo = v.pro.p10, hi = v.pro.p90;
+  return c.problem_side === "hi" ? x > hi : c.problem_side === "lo" ? x < lo : x < lo || x > hi;
+}
+
+// A frame with the shape of what is measured drawn over the joints: the knee's triangle, the upper body's wedge from
+// the plumb line, the pelvis on a ruler between the feet. Lines stay thin; the skeleton is only an accent.
+// The skeleton, thin and quiet under the measured shape.
+const BONES = [["head", "neck"], ["neck", "lead_shoulder"], ["neck", "trail_shoulder"], ["lead_shoulder", "lead_elbow"],
+  ["lead_elbow", "lead_wrist"], ["trail_shoulder", "trail_elbow"], ["trail_elbow", "trail_wrist"], ["lead_shoulder", "lead_hip"],
+  ["trail_shoulder", "trail_hip"], ["lead_hip", "trail_hip"], ["lead_hip", "lead_knee"], ["lead_knee", "lead_ankle"],
+  ["trail_hip", "trail_knee"], ["trail_knee", "trail_ankle"]];
+function figure(item, caption, opts) {
+  const fig = el("figure");
+  const img = el("img");
+  // Lazy before src: a src set first starts the fetch at once, and every picture in the page would load on open.
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.alt = caption;
+  img.src = item.file;
+  fig.append(img);
+  const j = item.joints || {};
+  // The pictures are 4:5, so a unit is the same across and down and the wedge's arc stays round.
+  const s = svg("svg", { viewBox: "0 0 80 100", preserveAspectRatio: "none" });
+  const P = n => j[n] ? [j[n][0] * 80, j[n][1] * 100] : null;
+  const line = (a, b, color, dash, w) => {
+    if (!a || !b) return;
+    s.append(svg("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: color, "stroke-width": w || 2.2,
+      "stroke-linecap": "round", "stroke-dasharray": dash || "", "vector-effect": "non-scaling-stroke" }));
+  };
+  const fill = (pts, color, op) => s.append(svg("polygon", { points: pts.map(p => p.join(",")).join(" "), fill: color, "fill-opacity": op }));
+  const dot = (p, r, color) => p && s.append(svg("circle", { cx: p[0], cy: p[1], r, fill: color }));
+  const arrow = (a, b, color) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], n = Math.hypot(dx, dy);
+    if (n < 1.5) return;
+    const ux = dx / n, uy = dy / n, h = Math.min(2.6, n * 0.5);
+    line(a, [b[0] - ux * h * 0.6, b[1] - uy * h * 0.6], color, "", 2.4);
+    fill([b, [b[0] - ux * h - uy * h * 0.7, b[1] - uy * h + ux * h * 0.7], [b[0] - ux * h + uy * h * 0.7, b[1] - uy * h - ux * h * 0.7]], color, 1);
+  };
+  if (opts && opts.bones) {
+    for (const [a, b] of BONES) {
+      const pa = P(a), pb = P(b);
+      if (pa && pb) s.append(svg("line", { x1: pa[0], y1: pa[1], x2: pb[0], y2: pb[1], stroke: "#FFFFFF", "stroke-opacity": 0.7,
+        "stroke-width": 1.1, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" }));
+    }
+    for (const n of Object.keys(j)) { const p = P(n); if (p && n !== "mid_hip" && n !== "mid_shoulder") dot(p, 0.8, "rgba(255,255,255,.85)") }
+  }
+  const out = outside(item);
+  const col = out === true ? ON.bad : out === false ? ON.good : ON.plain;
+  const dash = "4 3";
+  const mh = P("mid_hip"), neck = P("neck") || P("mid_shoulder");
+  const torso = mh && neck ? Math.hypot(neck[0] - mh[0], neck[1] - mh[1]) : 20;
+  if (item.overlay === "trail_leg_angle") {
+    const hip = P("trail_hip"), knee = P("trail_knee"), ankle = P("trail_ankle");
+    if (hip && knee && ankle) fill([hip, knee, ankle], col, out == null ? 0.18 : 0.38);
+    line(hip, ankle, ON.plain, dash, 1.6);
+    line(hip, knee, col); line(knee, ankle, col);
+    dot(knee, 1.5, col);
+  } else if (item.overlay === "torso_tilt") {
+    if (mh && neck) {
+      const R = torso * 1.6, a0 = -Math.PI / 2, a1 = Math.atan2(neck[1] - mh[1], neck[0] - mh[0]);
+      const arc = [mh];
+      for (let k = 0; k <= 24; k++) { const a = a0 + (a1 - a0) * k / 24; arc.push([mh[0] + R * Math.cos(a), mh[1] + R * Math.sin(a)]) }
+      fill(arc, col, out == null ? 0.2 : 0.42);
+      line(mh, [mh[0], mh[1] - torso * 1.7], ON.ref, dash);
+      line(mh, [mh[0] + Math.cos(a1) * torso * 1.7, mh[1] + Math.sin(a1) * torso * 1.7], col);
+      dot(mh, 1.3, ON.plain);
+    }
+  } else if (item.overlay === "top_club" && item.club) {
+    // 顶点：手和杆: the lead arm thin and white, the club from the hands to the head in grass green.
+    const C = q => q ? [q[0] * 80, q[1] * 100] : null;
+    const arm = (item.club.lead_arm || []).map(C);
+    if (arm.length === 3) { line(arm[0], arm[1], ON.plain, "", 1.6); line(arm[1], arm[2], ON.plain, "", 1.6); dot(arm[1], 1.1, ON.plain) }
+    const h = C(item.club.hands), k = C(item.club.clubhead);
+    if (h && k) line(h, k, CLUB, "", 2.6);
+    if (k) dot(k, 1.5, CLUB);
+    if (h) { dot(h, 2.2, "rgba(0,0,0,.45)"); dot(h, 1.7, CLUB) }
+  } else if (item.overlay === "hip_line") {
+    line(P("lead_hip"), P("trail_hip"), col);
+  } else if (item.overlay === "pelvis_ruler") {
+    const la = P("lead_ankle"), ta = P("trail_ankle");
+    if (la && ta) {
+      const y = Math.max(la[1], ta[1]) + torso * 0.12;
+      const x0 = Math.min(la[0], ta[0]), x1 = Math.max(la[0], ta[0]), mid = (x0 + x1) / 2;
+      const top = mh ? mh[1] - torso * 1.3 : y - 40;
+      if (mh) fill([[Math.min(mid, mh[0]), top], [Math.max(mid, mh[0]), top], [Math.max(mid, mh[0]), y], [Math.min(mid, mh[0]), y]], col, out == null ? 0.2 : 0.35);
+      line([x0, y], [x1, y], ON.plain, "", 2.4);
+      for (let k = 0; k <= 10; k++) {
+        const x = x0 + (x1 - x0) * k / 10, h = torso * (k % 5 === 0 ? 0.09 : 0.04);
+        line([x, y - h], [x, y + h], ON.plain, "", k % 5 === 0 ? 2 : 1.2);
+      }
+      line([mid, top], [mid, y], ON.ref, dash);
+      if (mh) {
+        line(mh, [mh[0], y], ON.plain, "", 1.8);
+        dot(mh, 1.5, ON.plain);
+        arrow([mid, y - torso * 0.18], [mh[0], y - torso * 0.18], col);
+      }
+    }
+  }
+  fig.append(s);
+  const sep = opts && opts.stack ? "\n" : " · ";
+  fig.append(el("figcaption", null, item.value_text ? `${caption}${sep}${item.value_text}` : caption));
+  return fig;
+}
+
+// Her frame large, the pro's in its corner at the size its clip has: the pros' clips are 160 px, and enlarged they
+// would only blur.
+function compare(pro, proName, you) {
+  const box = el("div", "cmp");
+  const her = figure(you, "你");
+  her.classList.add("you");
+  if (pro) {
+    const p = figure(pro, proName);
+    p.classList.add("pro");
+    const img = p.querySelector("img");
+    img.onload = () => { p.style.width = Math.min(img.naturalWidth, 128) + "px" };
+    her.append(p);
+  }
+  box.append(her);
+  return box;
+}
+
+// A tool drawn where it goes on her own frame, from her joints: the shapes are placed, not traced, so they show
+// where to put it, not a photo of it.
+function toolFigure(item, caption, draw) {
+  const f = figure({ ...item, overlay: null, value: null, value_text: null }, caption);
+  const s = f.querySelector("svg"), j = item.joints || {};
+  const P = n => j[n] ? [j[n][0] * 80, j[n][1] * 100] : null;
+  const mh = P("mid_hip"), neck = P("neck") || P("mid_shoulder");
+  const T = mh && neck ? Math.hypot(neck[0] - mh[0], neck[1] - mh[1]) : 20;
+  const g = {
+    P, T, mh, neck,
+    line: (a, b, col, w, dash) => s.append(svg("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: col, "stroke-width": w || 3,
+      "stroke-linecap": "round", "stroke-dasharray": dash || "", "vector-effect": "non-scaling-stroke" })),
+    dot: (p, r, col, ring) => s.append(svg("circle", { cx: p[0], cy: p[1], r, fill: col, stroke: ring || "none", "stroke-width": 1.5, "vector-effect": "non-scaling-stroke" })),
+  };
+  draw(g);
+  return f;
+}
+
+// Her typical frames from one camera at two moments of the same swing, or null.
+function framePair(doc, view, a, b) {
+  const second = media(doc, { who: "you", view, pick: "typical", phase: b })[0];
+  if (!second) return null;
+  const first = media(doc, { who: "you", view, pick: "typical", phase: a }).find(m => m.swing === second.swing && m.video === second.video);
+  return first ? [first, second] : null;
+}
+
+// The pictures of one tool, or null when the frames it needs are not there.
+function toolPictures(doc, id) {
+  const box = el("div", "tool-pics");
+  const add = f => f && box.append(f);
+  const feet = (P) => { const la = P("lead_ankle"), ta = P("trail_ankle"); return la && ta ? { la, ta, gy: Math.max(la[1], ta[1]), mx: (la[0] + ta[0]) / 2 } : null };
+  if (id === "chair") {
+    const pair = framePair(doc, "down_the_line", "address", "top");
+    if (!pair) return null;
+    const [ad, tp] = pair;
+    // Placed at address a fist behind the trail knee; carried to the top by the trail ankle, scaled by the trail leg.
+    let rel = null, back = 1;
+    add(toolFigure(ad, "站位：椅面离右膝一拳", g => {
+      const k = g.P("trail_knee"), a = g.P("trail_ankle"), h = g.P("trail_hip"), ft = feet(g.P);
+      if (!k || !a || !h || !ft || !g.mh) return;
+      back = Math.sign(g.mh[0] - ft.mx) || 1;
+      const leg = Math.hypot(h[0] - a[0], h[1] - a[1]);
+      const x0 = k[0] + back * 0.16 * g.T, x1 = x0 + back * 0.45 * g.T;
+      rel = { leg, a, x0: x0 - a[0], x1: x1 - a[0], sy: k[1] - a[1], gy: ft.gy - a[1], top: -0.55 * g.T };
+      chair(g, x0, x1, k[1], ft.gy, 0.55 * g.T);
+      g.dot(k, 2.2, ON.good, "#fff");
+    }));
+    add(toolFigure(tp, "顶点：右膝往后退就会碰到", g => {
+      const k = g.P("trail_knee"), a = g.P("trail_ankle"), h = g.P("trail_hip");
+      if (!rel || !k || !a || !h) return;
+      const z = Math.hypot(h[0] - a[0], h[1] - a[1]) / rel.leg;
+      const x0 = a[0] + rel.x0 * z, x1 = a[0] + rel.x1 * z;
+      chair(g, x0, x1, a[1] + rel.sy * z, a[1] + rel.gy * z, -rel.top * z);
+      const hit = back * (k[0] - x0) >= 0;
+      g.dot(k, 2.2, hit ? ON.bad : ON.good, "#fff");
+      tp._hit = hit;
+    }));
+    const cap = el("p", "mute", tp._hit ? "右边是你平时的顶点：右膝退到了椅面的位置，会碰到椅子。" : "右边是你平时的顶点：右膝没退到椅面，碰不到。");
+    box.append(cap);
+    return box;
+  }
+  if (id === "wall_behind") {
+    const ad = media(doc, { who: "you", view: "down_the_line", pick: "typical", phase: "address" })[0];
+    if (!ad) return null;
+    add(toolFigure(ad, "站位：屁股后面一拳是墙", g => {
+      const ft = feet(g.P);
+      if (!ft || !g.mh || !g.neck) return;
+      const back = Math.sign(g.mh[0] - ft.mx) || 1, x = g.mh[0] + back * 0.35 * g.T;
+      g.line([x, ft.gy], [x, g.neck[1] - 0.3 * g.T], ON.good, 5);
+    }));
+    return box;
+  }
+  const face = (phase) => media(doc, { who: "you", view: "face_on", pick: "typical", phase })[0];
+  if (id === "ball_under_trail_foot") {
+    const ad = face("address");
+    if (!ad) return null;
+    add(toolFigure(ad, "球垫在右脚掌外侧", g => {
+      const ft = feet(g.P);
+      if (!ft) return;
+      const out = Math.sign(ft.ta[0] - ft.la[0]) || 1;
+      g.dot([ft.ta[0] + out * 0.07 * g.T, ft.ta[1] + 0.05 * g.T], 0.05 * g.T + 1, "#fff", ON.good);
+    }));
+    return box;
+  }
+  if (id === "alignment_stick") {
+    const pair = framePair(doc, "face_on", "address", "top");
+    if (!pair) return null;
+    add(toolFigure(pair[0], "站位：腰带扣在杆的正上方", g => {
+      const ft = feet(g.P);
+      if (!ft || !g.mh) return;
+      g.line([ft.mx, ft.gy - 0.04 * g.T], [ft.mx, 100], ON.good, 4);
+      g.line([ft.mx, ft.gy], [ft.mx, g.mh[1]], ON.plain, 1.5, "4 3");
+      const off = Math.abs(g.mh[0] - ft.mx) / Math.max(Math.abs(ft.la[0] - ft.ta[0]), 1);
+      g.dot(g.mh, 2.2, off <= 0.08 ? ON.good : ON.bad, "#fff");
+    }));
+    add(toolFigure(pair[1], "顶点：领口不过杆", g => {
+      const ft = feet(g.P);
+      if (!ft || !g.neck) return;
+      const tgt = Math.sign(ft.la[0] - ft.ta[0]) || 1;
+      g.line([ft.mx, ft.gy - 0.04 * g.T], [ft.mx, 100], ON.good, 4);
+      g.line([ft.mx, ft.gy], [ft.mx, g.neck[1] - 0.2 * g.T], ON.plain, 1.5, "4 3");
+      g.dot(g.neck, 2.2, tgt * (g.neck[0] - ft.mx) > 0 ? ON.bad : ON.good, "#fff");
+    }));
+    box.append(el("p", "mute", "绿线是地上的杆，白虚线是从杆往上的竖线。红点：腰带扣或领口过了杆；绿点：在杆上方或后面。"));
+    return box;
+  }
+  if (id === "stick_outside_lead_hip" || id === "stick_outside_trail_hip") {
+    const ad = face("address");
+    if (!ad) return null;
+    const lead = id === "stick_outside_lead_hip";
+    add(toolFigure(ad, lead ? "杆立在前脚外侧" : "杆立在后脚外侧", g => {
+      const ft = feet(g.P);
+      if (!ft || !g.mh) return;
+      const tgt = Math.sign(ft.la[0] - ft.ta[0]) || 1;
+      const x = lead ? ft.la[0] + tgt * 0.12 * g.T : ft.ta[0] - tgt * 0.12 * g.T;
+      g.line([x, ft.gy], [x, g.mh[1] - 0.35 * g.T], ON.good, 4);
+    }));
+    return box;
+  }
+  if (id === "hold_finish") {
+    const fin = media(doc, { who: "you", pick: "finish" })[0];
+    if (!fin) return null;
+    add(figure(fin, "你平时的收杆"));
+    return box;
+  }
+  return null;
+}
+
+function chair(g, x0, x1, sy, gy, back) {
+  g.line([x0, sy], [x0, gy], ON.good, 3);
+  g.line([x1, sy], [x1, gy], ON.good, 3);
+  g.line([x0, sy], [x1, sy], ON.good, 5);
+  g.line([x1, sy], [x1, sy - back], ON.good, 3);
+}
+
+// Every swing as a dot against the pros' band; the median and the nearest pro marked.
+function strip(doc, check, hl) {
+  const v = check.views.find(x => x.video === hl.video) || check.views[0];
+  const vals = v.values || [];
+  const [lo, hi] = axis([...vals, v.pro.p10, v.pro.p90, hl.pro_value]);
+  const W = 340, X = x => 10 + (x - lo) / (hi - lo) * (W - 20);
+  const H = hl.axis ? 104 : 88;
+  const s = svg("svg", { class: "strip", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": hl.title });
+  // A label near an edge is anchored to that edge so it never runs off the chart.
+  const label = (x, y, text, style) => {
+    const t = svg("text", { x, y, "text-anchor": x < 70 ? "start" : x > W - 70 ? "end" : "middle" });
+    if (x < 70) t.setAttribute("x", Math.max(2, x - 6));
+    if (x > W - 70) t.setAttribute("x", Math.min(W - 2, x + 6));
+    t.textContent = text;
+    if (style) t.setAttribute("style", style);
+    s.append(t);
+  };
+  s.append(svg("rect", { x: X(v.pro.p10), y: 22, width: Math.max(1, X(v.pro.p90) - X(v.pro.p10)), height: 34, rx: 6, fill: C.band }));
+  const out = x => (check.problem_side === "hi" && x > v.pro.p90) || (check.problem_side === "lo" && x < v.pro.p10)
+    || (check.problem_side === "both" && (x > v.pro.p90 || x < v.pro.p10));
+  vals.forEach((x, i) => {
+    s.append(svg("circle", { cx: X(x), cy: 30 + (i % 4) * 6, r: 3.6, fill: out(x) ? C.fault : C.dot, "fill-opacity": 0.9 }));
+  });
+  if (hl.best != null) s.append(svg("circle", { cx: X(hl.best), cy: 39, r: 9, fill: "none", stroke: C.accent, "stroke-width": 2 }));
+  s.append(svg("line", { x1: X(v.you.p50), x2: X(v.you.p50), y1: 16, y2: 62, stroke: C.ink, "stroke-width": 1.5 }));
+  label(X(v.you.p50), 12, hl.you_text, "fill:#EDF1EC;font-weight:600");
+  if (hl.pro_value != null) {
+    const px = X(hl.pro_value);
+    s.append(svg("path", { d: `M${px} 60 l5 6 l-5 6 l-5 -6 z`, fill: C.ref }));
+    label(px, 84, hl.pro_text, "fill:#6FA8F0");
+  }
+  if (hl.axis) {
+    const a = svg("text", { x: 10, y: 101 }); a.textContent = "← " + hl.axis[0]; s.append(a);
+    const b = svg("text", { x: W - 10, y: 101, "text-anchor": "end" }); b.textContent = hl.axis[1] + " →"; s.append(b);
+  }
+  return s;
+}
+
+// Every swing against the band, with how many are outside it.
+function stripBox(doc, check, hl) {
+  const sb = el("div", "strip-box");
+  sb.append(el("span", "t", hl.title), strip(doc, check, hl));
+  const out = el("p", "out");
+  const [k, rest] = hl.out_text.split(" ");
+  out.append(el("b", "num", k), document.createTextNode(" " + (rest || "")));
+  sb.append(out, el("span", "mute", `每个点是你的一杆，红点在职业区间之外 · ${hl.band_text}`));
+  return sb;
+}
+
+// A finding's picture: her swing nearest her median at the moment the check is read, beside the nearest pro's.
+function explain(doc, check, hl, fid) {
+  const box = el("div", "explain");
+  const yous = media(doc, { who: "you", check: hl.check, pick: "typical" });
+  const at = yous.find(m => m.value != null) || yous[yous.length - 1];
+  const proName = hl.pro_name || "职业";
+  const lp = fid && (doc.loops || []).find(l => l.finding === fid && l.frames && l.frames.length);
+  const moving = lp && duet(lp, proName);
+  const grid = fid && phaseGrid(doc, hl, proName);
+  if (moving || grid) {
+    // Shown open on the finding's card: the swing moving beside the pro's, then its moments side by side.
+    const rich = el("div", "cmp rich");
+    if (moving) {
+      const t = el("div", "rich-t");
+      t.append(el("b", null, `动起来对比：你和 ${proName}`),
+        el("span", null, "两边按同一个阶段对齐：你到顶点，职业也在顶点。点画面暂停。"));
+      rich.append(t, moving);
+    }
+    if (grid) {
+      const t = el("div", "rich-t");
+      t.append(el("b", null, "同一阶段，一帧一帧对照"), el("span", null, "白线是骨架；彩色是这一项量的东西，红色在职业区间外。"));
+      rich.append(t, grid);
+    }
+    const proof = proofGrid(doc, fid);
+    if (proof) rich.append(proof);
+    box.append(rich);
+  } else if (at) {
+    const pro = media(doc, { who: "pro", check: hl.check, phase: at.phase })[0];
+    box.append(compare(pro, proName, at));
+  }
+  const best = media(doc, { who: "you", check: hl.check, pick: "best" })[0];
+  if (check && check.views.length) box.append(stripBox(doc, check, best ? { ...hl, best: best.value } : hl));
+  if (best && best.file) {
+    const did = el("div", "did");
+    const tx = el("div");
+    const range = hl.band_text.replace(/^职业 80%：/, "");
+    tx.append(el("b", null, `你做到过：第 ${best.swing + 1} 杆`),
+      el("p", null, `这一杆是 ${best.value_text}，在职业 80% 的区间里（${range}），分布条上画圈的那个点就是它。练的时候找这一杆的感觉。`));
+    did.append(figure(best, `第 ${best.swing + 1} 杆`), tx);
+    box.append(did);
+  }
+  return box;
+}
+
+// Her swing slowed down, frame by frame, with the pro's frame at the position she is in. The pro's clips are kept only
+// as six key frames, so the pro steps while she moves; the pro's picture is shown at its own size, never enlarged.
+const POS = ["address", "takeaway", "top", "half_down", "impact", "finish"];
+// A moving picture loads its frames and plays only once it comes near the screen; the page opens without them.
+function watch(node, files, onSeen) {
+  let loaded = false;
+  const near = v => {
+    if (v && !loaded) { loaded = true; files.forEach(f => { new Image().src = f }) }
+    onSeen(v);
+  };
+  if (!("IntersectionObserver" in window)) return near(true);
+  new IntersectionObserver(es => near(es[0].isIntersecting), { rootMargin: "400px 0px" }).observe(node);
+}
+const POS_ZH = { address: "站位", takeaway: "起杆", top: "顶点", half_down: "下杆一半", impact: "击球", finish: "收杆" };
+function loopPlayer(lp) {
+  const box = el("div", "loop");
+  const stage = el("div", "stage");
+  const img = el("img");
+  img.alt = "你的慢放";
+  stage.append(img);
+  const pros = lp.pro_frames || {};
+  let pimg, ptag;
+  if (Object.keys(pros).length) {
+    const inset = el("div", "inset");
+    pimg = el("img"); pimg.alt = lp.pro_name || "职业";
+    ptag = el("span");
+    inset.append(pimg, ptag);
+    stage.append(inset);
+  }
+  // The clubhead's path so far, where the model found it.
+  const club = lp.club || [];
+  const trail = svg("svg", { viewBox: "0 0 80 100", preserveAspectRatio: "none", class: "trail" });
+  if (club.length) stage.insertBefore(trail, img.nextSibling);
+  const drawTrail = t => {
+    trail.textContent = "";
+    const shown = club.filter(c => c[0] <= t + 1e-6);
+    const pts = shown.map(c => [c[1] * 80, c[2] * 100]);
+    // Joined only between neighbouring frames: across a gap the model did not see where the head went.
+    for (let i = 1; i < shown.length; i++) {
+      if (shown[i][0] - shown[i - 1][0] > 0.05) continue;
+      trail.append(svg("line", { x1: pts[i - 1][0], y1: pts[i - 1][1], x2: pts[i][0], y2: pts[i][1], stroke: "#F2C94C",
+        "stroke-width": 2, "stroke-opacity": 0.85, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" }));
+    }
+    pts.forEach((p, i) => trail.append(svg("circle", { cx: p[0], cy: p[1], r: i === pts.length - 1 ? 1.4 : 0.8, fill: "#F2C94C" })));
+  };
+  const tag = el("span", "pos");
+  const state = el("span", "state");
+  stage.append(tag, state);
+  const at = t => POS.filter(p => lp.at[p] != null && t >= lp.at[p] - 1e-6).pop() || "address";
+  let k = 0, playing = true, seen = false, timer;
+  const show = () => {
+    img.src = lp.frames[k];
+    const p = at(lp.times[k]);
+    tag.textContent = "你 · " + POS_ZH[p];
+    if (club.length) drawTrail(lp.times[k]);
+    if (pimg) {
+      const shown = POS.slice(0, POS.indexOf(p) + 1).reverse().find(x => pros[x]);
+      if (shown) { pimg.src = pros[shown]; ptag.textContent = `${lp.pro_name || "职业"} · ${POS_ZH[shown]}` }
+    }
+  };
+  const tick = () => {
+    clearTimeout(timer);
+    if (!playing || !seen) return;
+    show();
+    const last = k === lp.frames.length - 1;
+    k = last ? 0 : k + 1;
+    timer = setTimeout(tick, last ? 900 : 125);
+  };
+  stage.onclick = () => { playing = !playing; state.textContent = playing ? "" : "已暂停，点一下继续"; tick() };
+  watch(stage, [...lp.frames, ...Object.values(pros)], v => { seen = v; tick() });
+  const rate = lp.club_seen;
+  const clubLine = !club.length || rate == null ? ""
+    : rate < 0.7 ? `黄线是杆头的路线，只作参考：这段画面里只有 ${Math.round(rate * 100)}% 认出了杆头，光线暗或杆身糊的时候认不出。`
+    : `黄线是杆头的路线（这段画面里 ${Math.round(rate * 100)}% 认出了杆头）。`;
+  box.append(stage, el("p", "mute", clubLine + `慢放：你最接近自己平时的一杆，从站位到收杆。右上角是 ${lp.pro_name || "职业"} 在同一位置的画面，职业片段只留了 6 个位置，所以一格一格地换。点画面暂停。`));
+  return box;
+}
+
+// Her swing and the pro's side by side, moving together: the pro's frame is found position by position, so at her top
+// the pro is at the top too, whatever either's tempo. Tap to pause.
+function duet(lp, proName) {
+  const m = lp.pro_motion;
+  if (!m || !lp.frames.length) return null;
+  const box = el("div", "duet");
+  const two = el("div", "two");
+  const her = el("div", "pane"), pro = el("div", "pane");
+  const img = el("img"); img.alt = "你";
+  const herTag = el("span", "tag"), proTag = el("span", "tag"), state = el("span", "state");
+  her.append(img, herTag, state);
+  const sp = el("div", "sprite");
+  const rows = Math.ceil(m.frames / m.cols);
+  sp.style.backgroundSize = `${m.cols * 100}% ${rows * 100}%`;
+  pro.style.aspectRatio = `${m.w} / ${m.h}`;
+  pro.append(sp, proTag);
+  two.append(her, pro);
+  const steps = el("div", "steps");
+  const stepEls = POS.map(p => { const x = el("span", null, POS_ZH[p]); steps.append(x); return x });
+  box.append(two, steps);
+  // Her key times paired with the pro's frames, in her order; between two, the pro moves evenly.
+  const keys = POS.filter(p => lp.at[p] != null && m.at[p] != null).map(p => [lp.at[p], m.at[p]]).sort((a, b) => a[0] - b[0]);
+  const proAt = t => {
+    if (!keys.length) return 0;
+    if (t <= keys[0][0]) return keys[0][1];
+    for (let i = 1; i < keys.length; i++) {
+      const [t0, k0] = keys[i - 1], [t1, k1] = keys[i];
+      if (t <= t1) return Math.round(k0 + (k1 - k0) * (t1 > t0 ? (t - t0) / (t1 - t0) : 1));
+    }
+    return keys[keys.length - 1][1];
+  };
+  const at = t => POS.filter(p => lp.at[p] != null && t >= lp.at[p] - 1e-6).pop() || "address";
+  const name = proName || lp.pro_name || "职业";
+  let k = 0, playing = true, seen = false, timer;
+  const show = () => {
+    img.src = lp.frames[k];
+    const t = lp.times[k], p = at(t);
+    const f = Math.min(m.frames - 1, Math.max(0, proAt(t)));
+    const c = f % m.cols, r = Math.floor(f / m.cols);
+    sp.style.backgroundPosition = `${m.cols > 1 ? c / (m.cols - 1) * 100 : 0}% ${rows > 1 ? r / (rows - 1) * 100 : 0}%`;
+    herTag.textContent = `你 · ${POS_ZH[p]}`;
+    proTag.textContent = `${name} · ${POS_ZH[p]}`;
+    stepEls.forEach((x, i) => x.classList.toggle("on", POS[i] === p));
+  };
+  const tick = () => {
+    clearTimeout(timer);
+    if (!playing || !seen) return;
+    show();
+    const last = k === lp.frames.length - 1;
+    k = last ? 0 : k + 1;
+    timer = setTimeout(tick, last ? 1000 : 110);
+  };
+  two.onclick = () => { playing = !playing; state.textContent = playing ? "" : "已暂停，点一下继续"; tick() };
+  watch(two, [...lp.frames, m.file], v => {
+    if (v && !sp.style.backgroundImage) sp.style.backgroundImage = `url("${m.file}")`;
+    seen = v; tick();
+  });
+  return box;
+}
+
+// The finding's moments of her swing and the pro's, the same size, skeleton under the measured shape.
+function phaseGrid(doc, hl, proName) {
+  const yous = media(doc, { who: "you", check: hl.check, pick: "typical" }).sort((a, b) => POS.indexOf(a.phase) - POS.indexOf(b.phase));
+  if (yous.length < 2) return null;
+  const pros = yous.map(y => media(doc, { who: "pro", check: hl.check, phase: y.phase }).find(m => !m.pick));
+  const g = el("div", "pgrid");
+  g.style.setProperty("--n", String(yous.length));
+  if (pros.some(Boolean)) {
+    g.append(el("span", "who", proName));
+    pros.forEach(p => g.append(p ? figure(p, POS_ZH[p.phase], { bones: true, stack: true }) : el("figure")));
+  }
+  g.append(el("span", "who", `你 · 第 ${yous[0].swing + 1} 杆（最接近你平时的一杆）`));
+  yous.forEach(y => g.append(figure(y, POS_ZH[y.phase], { bones: true, stack: true })));
+  return g;
+}
+
+// Every swing the finding was read on, from nearest the pros to farthest: it is in all of them, not one bad swing.
+function proofGrid(doc, fid) {
+  const items = media(doc, { who: "you", finding: fid, pick: "proof" });
+  if (items.length < 2) return null;
+  const box = el("div", "rich");
+  const t = el("div", "rich-t");
+  const off = items.filter(i => outside(i) === true).length;
+  t.append(el("b", null, `逐杆核对：${items.length} 杆`),
+    el("span", null, `从最接近职业的一杆排到差得最多的一杆。${off} 杆在职业 80% 的区间外（红色），${items.length - off} 杆在区间里（绿色）。`));
+  const g = el("div", "proof");
+  items.forEach(i => g.append(figure(i, `第 ${i.swing + 1} 杆`, { bones: true, stack: true })));
+  box.append(t, g);
+  return box;
+}
+
+let audio;
+function metronome(bpm, beats) {
+  audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+  const dots = [...beats.children];
+  const step = 60 / bpm, t0 = audio.currentTime + 0.1;
+  for (let rep = 0; rep < 3; rep++) {
+    for (let i = 0; i < 5; i++) {
+      const t = t0 + (rep * 6 + i) * step;
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = i === 4 ? 520 : 1040;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(i === 4 ? 0.6 : 0.3, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (i === 4 ? 0.25 : 0.08));
+      o.connect(g).connect(audio.destination);
+      o.start(t); o.stop(t + 0.3);
+      const on = (t - audio.currentTime) * 1000;
+      setTimeout(() => { dots.forEach(d => d.classList.remove("on")); dots[i].classList.add("on") }, on);
+    }
+  }
+  setTimeout(() => dots.forEach(d => d.classList.remove("on")), (t0 - audio.currentTime + 18 * step) * 1000);
+}
+
+function renderOld(doc) {
+  const n = doc.narrative;
+  const byId = Object.fromEntries(doc.checks.map(c => [c.id, c]));
+  CHECKS = byId;
+  // A check a finding is shown on is explained there; its camera's card links to it instead of repeating it.
+  const explained = Object.fromEntries(n.findings.items.filter(f => f.highlight).map(f => [f.highlight.check, f]));
+  document.title = n.title;
+  document.getElementById("date").textContent = n.date_line;
+  const main = document.getElementById("main");
+  main.textContent = "";
+
+  // Hero.
+  const hero = el("section", "card hero");
+  hero.id = "top";
+  const heroPic = media(doc, { who: "you", finding: n.hero.finding, pick: "typical" }).find(m => m.phase === "top")
+    || media(doc, { who: "you", finding: n.hero.finding })[0];
+  if (heroPic) {
+    const ph = el("div", "ph"), img = el("img");
+    img.src = heroPic.file; img.alt = "";
+    ph.append(img); hero.append(ph);
+  }
+  const hin = el("div", "in");
+  hin.append(el("span", "eyebrow", "本次重点"), el("h1", null, n.hero.title));
+  if (n.hero.line) hin.append(el("p", "line", n.hero.line));
+  const chips = el("div", "chips");
+  const cnt = s => doc.checks.filter(c => c.status === s).length;
+  chips.append(el("span", "chip p", `问题 ${cnt("problem")} 项`), el("span", "chip w", `注意 ${cnt("watch")} 项`),
+    el("span", "chip o", `合格 ${doc.checks.filter(c => c.counted && c.status === "ok").length} 项`));
+  hin.append(chips);
+  hero.append(hin);
+  main.append(hero);
+
+  const nums = el("section", "card");
+  const grid = el("div", "nums");
+  for (const x of n.numbers) {
+    const d = el("div"); d.append(ico(["n-swings", "n-cameras", "n-pros"][grid.children.length]), el("b", "num", x.value), el("span", null, x.label)); grid.append(d);
+  }
+  nums.append(grid, el("p", "mute", n.cameras_line));
+  main.append(nums);
+
+  const basis = el("section", "card basis");
+  basis.append(el("span", "ic", "✓"), el("p", null, n.basis_note));
+  main.append(basis);
+
+  // Score.
+  if (doc.scores.overall != null) {
+    const sc = el("section", "card score");
+    sc.append(el("span", "t", n.score.title));
+    const top = el("div", "top");
+    top.append(el("b", "num", String(doc.scores.overall)), el("span", null, "/ 100"));
+    sc.append(top, el("span", "sub", n.score.sub));
+    const cats = el("div", "cats");
+    const scoreOf = Object.fromEntries(doc.scores.categories.map(c => [c.id, c.score]));
+    for (const c of n.score.categories) {
+      const row = el("div", "cat");
+      row.append(el("span", "l", `${c.label} · ${c.n} 项`), el("span", "s num", String(scoreOf[c.id])));
+      const tr = el("div", "track"), i = el("i");
+      i.style.width = `${scoreOf[c.id]}%`;
+      tr.append(i);
+      row.append(tr, el("span", "note", c.note));
+      cats.append(row);
+    }
+    sc.append(cats);
+    main.append(sc);
+  }
+
+  // Outline.
+  const ol = el("section", "card");
+  ol.append(el("h3", null, "这份报告按这个顺序来讲"));
+  const list = el("div", "ol");
+  n.outline.forEach((o, i) => {
+    const a = el("a"); a.href = "#" + o.anchor;
+    const sp = el("span"); sp.append(el("span", null, o.title), el("small", null, o.sub));
+    a.append(el("b", null, String(i + 1)), sp);
+    list.append(a);
+  });
+  ol.append(list);
+  main.append(ol);
+  let secNo = 1;
+
+  // Look-alikes.
+  if (n.lookalikes.views.length) {
+    const s = section(++secNo, n.lookalikes.title, "lookalikes", n.lookalikes.intro);
+    for (const v of n.lookalikes.views) {
+      const dv = doc.lookalikes.find(l => l.view === v.view);
+      const c = dv && dv.lead_check ? byId[dv.lead_check] : null;
+      const pro = c && c.views[0] ? c.views[0].pro : null;
+      const vals = dv ? dv.rows.map(r => r.lead_value) : [];
+      const [lo, hi] = axis([...vals, dv && dv.you, pro && pro.p10, pro && pro.p90].filter(x => x != null));
+      const bar = x => {
+        const b = svg("svg", { viewBox: "0 0 96 14" });
+        if (pro) b.append(svg("rect", { x: (pro.p10 - lo) / (hi - lo) * 96, y: 4, width: Math.max(1, (pro.p90 - pro.p10) / (hi - lo) * 96), height: 6, rx: 3, fill: C.band }));
+        if (x != null) b.append(svg("circle", { cx: (x - lo) / (hi - lo) * 96, cy: 7, r: 4.2, fill: x === dv.you ? C.fault : C.ref }));
+        return b;
+      };
+      const card = el("div", "card lk");
+      card.append(el("h3", null, v.title));
+      v.rows.forEach((r, i) => {
+        const row = el("div", "lk-row");
+        const nm = el("span", "nm"); nm.append(el("b", null, r.name));
+        if (r.sub) nm.append(el("small", null, r.sub));
+        row.append(el("span", "i", String(i + 1)), nm, c ? bar(dv.rows[i].lead_value) : el("span"), el("span", "v", r.value_text));
+        card.append(row);
+      });
+      if (v.you_text) {
+        const row = el("div", "lk-row you");
+        const nm = el("span", "nm"); nm.append(el("b", null, "你"), el("small", null, v.you_sub));
+        row.append(el("span", "i", "你"), nm, bar(dv.you), el("span", "v", v.you_text));
+        card.append(row);
+      }
+      if (v.summary) card.append(el("p", "mute", v.summary));
+      // Every look-alike at the moment the lead check is read, at the size the clip has, and her beside them.
+      if (c) {
+        const lead = media(doc, { who: "pro", view: v.view, check: c.id });
+        const at = lead.map(m => m.phase).find(p => p !== "address") || (lead[0] && lead[0].phase);
+        const row = dv.rows.map(r => lead.find(m => m.pro_id === r.pro_id && m.phase === at));
+        const hers = media(doc, { who: "you", view: v.view, check: c.id, pick: "typical", phase: at })[0];
+        if (row.filter(Boolean).length > 1) {
+          const names = { top: "顶点", impact: "击球", address: "站位", finish: "收杆", half_down: "下杆一半" };
+          const lu = el("div", "lineup");
+          row.forEach((m, i) => { if (m) lu.append(figure(m, v.rows[i].name)) });
+          if (hers) { const f = figure(hers, "你"); f.classList.add("you"); lu.append(f) }
+          card.append(el("h4", null, `${names[at] || at}时：${row.filter(Boolean).length} 位职业${hers ? "和你" : ""}`), lu);
+        }
+      }
+      const pic = media(doc, { who: "pro", view: v.view })[0];
+      const you = pic && media(doc, { who: "you", view: v.view, phase: pic.phase, pick: "typical" })[0];
+      if (pic && you) {
+        card.append(compare(pic, v.rows[0].name, you));
+      }
+      const lp = (doc.loops || []).find(l => l.view === v.view && !l.finding && l.frames && l.frames.length);
+      if (lp) card.append(duet(lp, v.rows[0].name) || loopPlayer(lp));
+      s.append(card);
+    }
+    main.append(s);
+  }
+
+  // Findings.
+  if (n.findings.items.length) {
+    const s = section(++secNo, n.findings.title, "findings", n.findings.intro);
+    const card = el("div", "card fd");
+    const groups = [["root"], ["downstream"], ["later"]];
+    groups.forEach((roles, gi) => {
+      const items = n.findings.items.filter(f => roles.includes(f.role));
+      if (!items.length) return;
+      if (gi > 0 && card.children.length) card.append(el("div", "arrow", "↓"));
+      for (const f of items) {
+        const it = el("div", "fd-i " + f.role);
+        it.id = "fd-" + f.id;
+        const t = el("div"); t.append(el("b", null, f.title));
+        if (f.sub) t.append(el("small", null, f.sub));
+        if (f.detail) t.append(el("p", null, f.detail));
+        it.append(el("span", "no", f.no), t);
+        if (f.highlight) it.append(explain(doc, byId[f.highlight.check], f.highlight, f.id));
+        card.append(it);
+      }
+    });
+    if (n.findings.summary) card.append(el("p", "note", n.findings.summary));
+    s.append(card);
+    main.append(s);
+  }
+
+  // Locked checks: the reason once for the group, and how to film so they can be judged. Each camera's picture is
+  // shown once on the page; a later lock for the same camera links back to it.
+  const guideShown = {};
+  // The pictures show a right-hander; a left-hander's are the same turned left for right. The doc says which hand the
+  // swings showed, and the button on a picture turns every picture on the page.
+  let lefty = doc.handed === "left";
+  const turnGuides = () => {
+    for (const i of document.querySelectorAll(".guide img")) i.classList.toggle("mirror", lefty);
+    for (const b of document.querySelectorAll(".guide .hand")) b.textContent = lefty ? "右手打 ⇄" : "左手打 ⇄";
+  };
+  const lockBox = lk => {
+    const box = el("div", "lock");
+    const hd = el("div", "hd");
+    const icon = svg("svg", { viewBox: "0 0 16 16", "aria-hidden": "true" });
+    icon.append(svg("path", { d: "M4.5 7V5a3.5 3.5 0 0 1 7 0v2h.5A1 1 0 0 1 13 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h.5Zm1.5 0h4V5a2 2 0 0 0-4 0v2Z" }));
+    hd.append(icon, el("span", null, lk.badge), el("small", null, `${lk.count} 项`));
+    box.append(hd, el("p", null, lk.line));
+    const gd = lk.guide;
+    if (gd) {
+      const id = "guide-" + gd.view;
+      if (guideShown[gd.view]) {
+        const a = el("a", null, `${gd.title}：见上方 ›`);
+        a.href = "#" + id;
+        box.append(a);
+      } else {
+        guideShown[gd.view] = true;
+        const f = el("div", "guide");
+        f.id = id;
+        const img = el("img");
+        img.loading = "lazy";
+        img.alt = gd.title;
+        img.src = gd.image;
+        img.classList.toggle("mirror", lefty);
+        const hand = el("button", "hand", lefty ? "右手打 ⇄" : "左手打 ⇄");
+        hand.type = "button";
+        hand.onclick = () => { lefty = !lefty; turnGuides(); };
+        const pic = el("div", "pic");
+        pic.append(img, hand);
+        img.onerror = () => pic.remove();
+        const ul = el("ul");
+        for (const p of gd.points) ul.append(el("li", null, p));
+        f.append(pic, el("b", null, gd.title), ul);
+        if (gd.note) f.append(el("span", "note", gd.note));
+        box.append(f);
+      }
+    }
+    return box;
+  };
+
+  // Checks.
+  const cs = section(++secNo, n.checks.title, "checks", n.checks.intro);
+  const leg = el("div", "card legend");
+  for (const l of n.checks.legend) leg.append(el("span", null, l));
+  cs.append(leg);
+  for (const g of n.checks.groups) {
+    const card = el("div", "card");
+    card.id = "g-" + g.id;
+    const hd = el("div", "grp-hd");
+    hd.append(el("h3", null, g.title), el("small", null, g.sub));
+    card.append(hd);
+    const chips = el("div", "chips");
+    if (g.counts.problem) chips.append(el("span", "chip p", `${g.counts.problem} 问题`));
+    if (g.counts.watch) chips.append(el("span", "chip w", `${g.counts.watch} 注意`));
+    if (g.counts.ok) chips.append(el("span", "chip o", `${g.counts.ok} 合格`));
+    if (g.counts.excluded) chips.append(el("span", "chip", `${g.counts.excluded} 不评`));
+    card.append(chips);
+    const hl = g.highlight;
+    if (hl) {
+      const c = byId[hl.check];
+      const shown = explained[hl.check];
+      if (shown) {
+        const a = el("a", "see", `讲解图在「问题从哪里来」第 ${shown.no} 条：${shown.title}`);
+        a.href = "#fd-" + shown.id;
+        card.append(a);
+      } else {
+        const pros = media(doc, { who: "pro", check: hl.check });
+        const yous = media(doc, { who: "you", check: hl.check, pick: "typical" });
+        const phases = [...new Set(yous.map(m => m.phase))].filter(p => pros.some(m => m.phase === p));
+        if (phases.length) {
+          const pair = el("div");
+          const names = { address: "站位", top: "顶点", impact: "击球", finish: "收杆" };
+          const show = ph => {
+            pair.textContent = "";
+            pair.append(compare(pros.find(m => m.phase === ph), hl.pro_name || "职业", yous.find(m => m.phase === ph)));
+          };
+          if (phases.length > 1) {
+            const bt = el("div", "phases");
+            phases.forEach((ph, i) => {
+              const b = el("button", i === phases.length - 1 ? "on" : "", names[ph] || ph);
+              b.onclick = () => { [...bt.children].forEach(x => x.classList.remove("on")); b.classList.add("on"); show(ph) };
+              bt.append(b);
+            });
+            card.append(bt);
+          }
+          show(phases[phases.length - 1]);
+          card.append(pair);
+        }
+        card.append(stripBox(doc, c, hl));
+      }
+      if (hl.tool) {
+        const a = el("a", "tool-hint");
+        a.href = "#tool-" + hl.tool;
+        const t = el("span"); t.append(el("small", null, `工具 ${hl.tool_no}`), el("b", null, hl.tool_title || ""));
+        a.append(t);
+        card.append(a);
+      }
+    }
+    for (const lk of g.locked || []) card.append(lockBox(lk));
+    const rows = el("div", "rows");
+    for (const r of g.rows) {
+      const row = el("div", "row " + r.status);
+      const mark = { problem: "!", watch: "!", ok: "✓", excluded: "–" }[r.status];
+      row.append(el("span", "m", mark), el("span", "ti", r.title), el("span", "bd", r.badge));
+      if (r.line) row.append(el("span", "ln", r.line));
+      rows.append(row);
+    }
+    card.append(rows);
+    cs.append(card);
+  }
+  main.append(cs);
+
+  // Finish and grip photos.
+  const finishes = media(doc, { who: "you", pick: "finish" }), grips = media(doc, { who: "you", pick: "grip" });
+  if (n.photos && (finishes.length || grips.length)) {
+    const s = section(++secNo, n.photos.title, "photos", n.photos.intro);
+    const viewName = v => v === "face_on" ? "正面" : "侧面";
+    for (const [list, note, what] of [[finishes, n.photos.finish_note, "收杆"], [grips, n.photos.grip_note, "握杆"]]) {
+      if (!list.length) continue;
+      const card = el("div", "card");
+      card.append(el("h3", null, what));
+      const g = el("div", "photo-grid");
+      for (const m of list) g.append(figure(m, `${viewName(m.view)} · 第 ${m.swing + 1} 杆`));
+      card.append(g, el("p", "mute", note));
+      s.append(card);
+    }
+    main.append(s);
+  }
+
+  // Plan.
+  if (n.plan) {
+    const s = section(++secNo, n.plan.title, "plan", n.plan.intro);
+    for (const t of n.plan.tools) {
+      const card = el("div", "card tool");
+      card.id = "tool-" + t.id;
+      card.append(el("span", "tag", `工具 ${t.no}`), el("h3", null, t.title), el("p", null, t.lead));
+      const pics = toolPictures(doc, t.id);
+      if (pics) card.append(pics);
+      const ol = el("ol");
+      for (const step of t.steps) ol.append(el("li", null, step));
+      card.append(ol);
+      if (t.id === "metronome" && t.bpm) {
+        const m = el("div", "metro");
+        const beats = el("div", "beats");
+        for (let i = 0; i < 5; i++) beats.append(el("i", i === 4 ? "hit" : ""));
+        const btns = el("div", "btns");
+        t.bpm.forEach((b, i) => {
+          const btn = el("button", i ? "alt" : "", `听 ${b} 拍`);
+          btn.onclick = () => metronome(b, beats);
+          btns.append(btn);
+        });
+        m.append(btns, beats, el("span", "mute", "前三声上杆，第四声到顶点，最后一声击球。"));
+        card.append(m);
+      }
+      s.append(card);
+    }
+    const ss = el("div", "card");
+    ss.append(el("h3", null, n.plan.sessions_title), el("p", "mute", n.plan.sessions_intro));
+    const list = el("div", "ss");
+    for (const x of n.plan.sessions) {
+      const it = el("div", "s-i" + (x.n === n.plan.sessions.length ? " rt" : ""));
+      const wk = el("span", "wk"); wk.append(el("b", null, `第 ${x.n} 次`), document.createTextNode(`第 ${x.week} 周`));
+      it.append(wk, el("span", "what", x.what), el("span", "tl", x.tools));
+      if (x.pass) it.append(el("span", "ps", x.pass));
+      list.append(it);
+    }
+    ss.append(list);
+    s.append(ss);
+    main.append(s);
+  }
+
+  // Retest.
+  if (n.retest) {
+    const s = section(++secNo, n.retest.title, "retest", n.retest.intro);
+    const card = el("div", "card");
+    for (const r of n.retest.items) {
+      const t = doc.retest.find(x => x.check === r.check);
+      const it = el("div", "rt-i");
+      it.append(el("b", null, r.title));
+      const lb = el("div", "lb");
+      lb.append(el("span", "now", r.now), el("span", "tg", r.target), el("span", "pr", r.pro));
+      it.append(lb);
+      const target = t.target_max != null ? t.target_max : t.target_min;
+      const pro = t.pro_p50 != null ? t.pro_p50 : t.pro_edge;
+      const [lo, hi] = axis([t.now, target, pro]);
+      const X = x => 8 + (x - lo) / (hi - lo) * 324;
+      const b = svg("svg", { viewBox: "0 0 340 28" });
+      b.append(svg("line", { x1: 8, x2: 332, y1: 14, y2: 14, stroke: "#24302A", "stroke-width": 2 }));
+      b.append(svg("line", { x1: X(t.now), x2: X(target), y1: 14, y2: 14, stroke: C.accent, "stroke-width": 2, "stroke-dasharray": "3 3" }));
+      [[pro, C.ref], [target, C.accent], [t.now, C.fault]].forEach(([x, col]) => b.append(svg("circle", { cx: X(x), cy: 14, r: 6, fill: col })));
+      it.append(b);
+      card.append(it);
+    }
+    s.append(card);
+    main.append(s);
+  }
+
+  // What is not certain.
+  const clubLow = (doc.loops || []).filter(l => l.club_seen != null && l.club_seen < 0.7 && l.frames && l.frames.length);
+  if (n.uncertain || clubLow.length) {
+    const u = n.uncertain || { title: "不确定的地方", intro: "", items: [] };
+    const s = section(++secNo, u.title, "uncertain", u.intro);
+    const card = el("div", "card unsure");
+    const items = [...u.items];
+    for (const l of clubLow) items.push({ title: "杆头轨迹", text: `${l.view === "face_on" ? "正面" : "侧面"}慢放里杆头只认出了 ${Math.round(l.club_seen * 100)}% 的画面，黄线只作参考，不计分。` });
+    for (const it of items) {
+      const row = el("div", "u-i");
+      row.append(el("b", null, it.title), el("p", null, it.text));
+      card.append(row);
+    }
+    s.append(card);
+    main.append(s);
+  }
+
+  // The outline lists only the sections the page has, numbered as they come.
+  [...document.querySelectorAll(".ol a")].forEach(a => { if (!document.getElementById(a.getAttribute("href").slice(1))) a.remove() });
+  [...document.querySelectorAll(".ol a > b")].forEach((b, i) => { b.textContent = String(i + 1) });
+
+  main.append(el("footer", null, n.footer));
+}
+
+// The coach's order: the old page is built first, then its parts are moved into a coach's order, with the
+// details folded. Nothing is rewritten: every sentence and picture comes from the old page or the doc.
+const ico = (name, cls) => {
+  const i = el("img", "ico" + (cls ? " " + cls : ""));
+  i.src = `icons/${name}.png`; i.alt = ""; i.onerror = () => i.remove();
+  return i;
+};
+const foldIcon = { "数字怎么来的": "film", "这次没评的项目和原因": "folder", "全部检查明细（按机位）": "checklist", "握杆照片": "glove", "关于这份报告": "pad" };
+function fold(label, ...kids) {
+  const d = el("details", "fold");
+  const s = el("summary");
+  if (foldIcon[label]) s.append(ico(foldIcon[label]));
+  s.append(el("span", null, label));
+  d.append(s);
+  const body = el("div", "fold-in");
+  body.append(...kids.filter(Boolean));
+  d.append(body);
+  return d;
+}
+
+// 你的挥杆现状: the swing in six phases, each read from both cameras at once (a camera not filmed leaves the other),
+// then one list of the phase's checks, each tagged with its camera. Every swing the report read sits behind a button:
+// a list per camera, and each swing's clip with its numbers.
+const VIEW = { face_on: "正面", down_the_line: "侧面" };
+const VIEW_ICO = { face_on: "view-faceon", down_the_line: "view-dtl" };
+const ST = { problem: ["要改", "st-fix"], watch: ["注意", "st-watch"], ok: ["合格", "st-ok"], excluded: ["没评", "st-off"] };
+const isImpactCheck = c => /impact/.test(c.id);
+const PHASES = [
+  { id: "setup", label: "站位", when: "准备击球时", at: "address", icon: "ph-setup", has: c => c.category === "setup" },
+  { id: "backswing", label: "上杆", when: "从起杆到顶点", at: "top", icon: "ph-backswing", has: c => c.category === "backswing", top: true },
+  { id: "down", label: "下杆", when: "顶点到击球前", at: "half_down", pic: false, icon: "ph-downswing", has: c => c.category === "downswing" && !isImpactCheck(c) },
+  { id: "impact", label: "击球", when: "杆头碰球那一刻", at: "impact", score: "downswing", icon: "ph-impact", has: c => c.category === "downswing" && isImpactCheck(c) },
+  { id: "finish", label: "收杆", when: "送杆到结束", at: "finish", icon: "ph-finish", has: c => c.category === "finish" },
+  { id: "tempo", label: "节奏", when: "上杆和下杆用的时间", at: "top", pic: false, icon: "ph-tempo", has: c => c.category === "tempo", oneView: true },
+];
+const JUMPS = [["address", "站位", "ph-setup"], ["top", "顶点", "ph-backswing"], ["half_down", "下杆", "ph-downswing"], ["impact", "击球", "ph-impact"], ["finish", "收杆", "ph-finish"]];
+const scoreBand = s => s == null ? "na" : s >= 80 ? "good" : s >= 50 ? "mid" : "bad";
+
+function vtag(view) {
+  const t = el("span", "vt");
+  t.append(ico(VIEW_ICO[view], "xs"), document.createTextNode(VIEW[view]));
+  return t;
+}
+
+function stChip(status) {
+  const [word, name] = ST[status] || ["", null];
+  const c = el("span", "chip " + status);
+  if (name) c.append(ico(name, "xs"));
+  c.append(document.createTextNode(word));
+  return c;
+}
+
+// A check's values over every video, each with its swing.
+function checkValues(c) {
+  return (c.views || []).flatMap(v => (v.values || []).map((x, i) => ({ x, video: v.video, swing: v.swing_ids ? v.swing_ids[i] : null, pro: v.pro })));
+}
+
+function outsideBand(c, x, pro) {
+  if (!pro || pro.p10 == null || pro.p90 == null) return false;
+  const hi = x > pro.p90, lo = x < pro.p10;
+  return c.problem_side === "hi" ? hi : c.problem_side === "lo" ? lo : hi || lo;
+}
+
+function nowSection(doc, p3) {
+  const n = doc.narrative;
+  const rowOf = Object.fromEntries(n.checks.groups.flatMap(g => g.rows).map(r => [r.check, r]));
+  const sc = Object.fromEntries(doc.scores.categories.map(c => [c.id, c.score]));
+  const filmed = new Set(doc.videos.map(v => v.view));
+  const lookName = v => { const l = (doc.lookalikes || []).find(x => x.view === v); const r = l && l.rows[0]; return r && (r.name_zh || r.player) };
+  const sheet = swingSheet(doc, rowOf);
+  const title = c => ((rowOf[c.id] || {}).title || c.label).replace(/^(站位|顶点|击球|收杆|上杆)/, "");
+  function spread(c) {
+    const vals = checkValues(c), pro = c.views && c.views[0] && c.views[0].pro;
+    if (!vals.length || !pro || pro.p10 == null) return null;
+    const [lo, hi] = axis([...vals.map(v => v.x), pro.p10, pro.p90]);
+    const X = x => 6 + (x - lo) / (hi - lo) * 288;
+    const s = svg("svg", { viewBox: "0 0 300 26", class: "spread" });
+    s.append(svg("rect", { x: X(pro.p10), y: 8, width: Math.max(2, X(pro.p90) - X(pro.p10)), height: 10, rx: 5, fill: "#1F3A24" }));
+    if (pro.p50 != null) s.append(svg("line", { x1: X(pro.p50), x2: X(pro.p50), y1: 4, y2: 22, stroke: "#9BE15D", "stroke-width": 1.5 }));
+    for (const v of vals) {
+      const out = outsideBand(c, v.x, v.pro);
+      const dot = svg("circle", { cx: X(v.x), cy: 13, r: 4.2, fill: out ? (c.status === "problem" ? "#F07A5E" : "#E8B04A") : "#0B1310", stroke: out ? "none" : "#9BE15D", "stroke-width": 1.4 });
+      // Tap a dot: that swing's clip.
+      if (v.swing != null && sheet.has(v.video, v.swing)) { dot.setAttribute("class", "hit"); dot.addEventListener("click", () => sheet.open(c.phase, c.view, v.video, v.swing)) }
+      s.append(dot);
+    }
+    return s;
+  }
+  function row(c) {
+    const r = rowOf[c.id] || {};
+    const box = el("div", "r2");
+    const top = el("div", "r2-top");
+    if (c.category !== "tempo") top.append(vtag(c.view));
+    top.append(el("b", null, title(c)), stChip(c.status));
+    box.append(top);
+    const vs = c.views || [], nn = vs.reduce((a, v) => a + v.n, 0), out = vs.reduce((a, v) => a + v.outside, 0);
+    if (nn && c.status !== "excluded") box.append(el("div", "r2-tally", out ? `${nn} 杆里 ${out} 杆在职业区间外` : `${nn} 杆都在职业区间里`));
+    const sp = c.status !== "excluded" && spread(c);
+    if (sp) box.append(sp);
+    if (r.line) box.append(el("div", "r2-num", r.line.replace(/^中位数 /, "你 ")));
+    return box;
+  }
+  const ord = { problem: 0, watch: 1, ok: 2, excluded: 3 };
+  // The swing arc: six phases in swing order, each filled to its score; tap one to go to it.
+  {
+    const toneHex = { good: "#9BE15D", mid: "#E8B04A", bad: "#F07A5E" };
+    const W = 360, H = 176, cx = 180, cy = 214, AR = 168;
+    const g = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "挥杆各段得分" });
+    const pt = (d, r) => [cx + r * Math.cos(d * Math.PI / 180), cy - r * Math.sin(d * Math.PI / 180)];
+    const arc = (d1, d2, r) => { const [x1, y1] = pt(d1, r), [x2, y2] = pt(d2, r); return `M${x1.toFixed(1)} ${y1.toFixed(1)}A${r} ${r} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}` };
+    const from = 162, to = 18, gap = 3, span = (from - to - gap * (PHASES.length - 1)) / PHASES.length;
+    PHASES.forEach((p, i) => {
+      const s = sc[p.score || p.id] ?? null;
+      const d1 = from - i * (span + gap), d2 = d1 - span, mid = (d1 + d2) / 2;
+      const a = svg("a", { href: "#ph-" + p.id });
+      a.append(svg("path", { d: arc(d1, d2, AR), fill: "none", stroke: "#26332C", "stroke-width": 2, "stroke-linecap": "round", "stroke-dasharray": s == null ? "1 5" : "none" }));
+      if (s) a.append(svg("path", { d: arc(d1, d1 - span * s / 100, AR), fill: "none", stroke: toneHex[scoreBand(s)], "stroke-width": 7, "stroke-linecap": "round" }));
+      const [lx, ly] = pt(mid, AR + 20), [nx, ny] = pt(mid, AR - 34);
+      const nm = svg("text", { x: lx.toFixed(1), y: (ly + 4).toFixed(1), "text-anchor": "middle", class: "gn" });
+      nm.textContent = p.label;
+      const nu = svg("text", { x: nx.toFixed(1), y: (ny + 8).toFixed(1), "text-anchor": "middle", class: "gv " + scoreBand(s) });
+      nu.textContent = s == null ? "—" : String(s);
+      a.append(nm, nu);
+      g.append(a);
+    });
+    const glance = el("div", "glance");
+    glance.append(g);
+    p3.append(glance);
+  }
+  for (const p of PHASES) {
+    const cs = doc.checks.filter(p.has).map(c => Object.assign(c, { phase: p.id })).sort((a, b) => ord[a.status] - ord[b.status]);
+    const s = sc[p.score || p.id] ?? null;
+    const card = el("div", "ph2");
+    card.id = "ph-" + p.id;
+    const hd = el("div", "ph2-hd");
+    const t = el("div");
+    t.append(el("h3", null, p.label), el("div", "when", p.when));
+    hd.append(ico(p.icon), t, el("span", "sc " + scoreBand(s), s == null ? "—" : String(s)));
+    card.append(hd);
+    const bad = cs.filter(c => c.status === "problem" || c.status === "watch");
+    card.append(el("p", "ph2-say", bad.length ? "先看：" + bad.slice(0, 2).map(c => (rowOf[c.id] || {}).title || c.label).join("、")
+      : cs.some(c => c.status === "ok") ? "这一段都在职业区间里。" : "这一段还没有能测准的检查，正在补。"));
+    if (p.oneView) {
+      card.append(el("p", "todo", "节奏只看时间，哪个角度拍的都能测。"));
+    } else {
+      const cams = el("div", "cams");
+      for (const v of ["face_on", "down_the_line"]) {
+        const c = el("span", filmed.has(v) ? null : "off");
+        c.append(ico(VIEW_ICO[v], "xs"), document.createTextNode(VIEW[v] + (filmed.has(v) ? "" : " 没拍")));
+        cams.append(c);
+      }
+      card.append(cams);
+    }
+    // Both cameras at once: one column per camera, her frame above her look-alike's. One camera only: hers and the
+    // pro's side by side.
+    const views = ["face_on", "down_the_line"].filter(v => filmed.has(v));
+    const tops = (n.top && n.top.pairs) || [];
+    const pics = p.oneView || p.pic === false ? [] : views.map(v => {
+      const tp = p.top && tops.find(x => x.view === v);
+      const you = tp ? media(doc, { id: "you-topclub-" + v })[0]
+        : media(doc, { who: "you", view: v, phase: p.at, pick: "typical" })[0] || media(doc, { who: "you", view: v, phase: p.at })[0];
+      const pro = tp ? media(doc, { id: "pro-topclub-" + v })[0] : media(doc, { who: "pro", view: v, phase: p.at })[0];
+      return { v, you, pro, name: (tp && tp.pro_name) || lookName(v) || "职业", tp };
+    }).filter(x => x.you);
+    if (pics.length) {
+      const grid = el("div", "pair2");
+      const one = pics.length === 1;
+      grid.style.setProperty("--c", one ? 2 : pics.length);
+      const head = v => { const h = el("div", "pc-h"); h.append(ico(VIEW_ICO[v], "sm"), document.createTextNode(VIEW[v])); return h };
+      if (one) { const h = head(pics[0].v); h.style.gridColumn = "1 / -1"; grid.append(h) } else for (const x of pics) grid.append(head(x.v));
+      const cell = (m, cap, cls) => { const f = m ? figure(m, cap) : el("div", "pc-none", "没有这位职业这一刻的画面"); f.classList.add(cls); return f };
+      // A row of empty pro cells says nothing; keep a placeholder only beside a pro picture in the other column.
+      const anyPro = pics.some(x => x.pro);
+      if (one) grid.append(cell(pics[0].you, "你", "you"), ...(anyPro ? [cell(pics[0].pro, pics[0].name, "pro")] : []));
+      else { for (const x of pics) grid.append(cell(x.you, "你", "you")); if (anyPro) for (const x of pics) grid.append(cell(x.pro, x.name, "pro")) }
+      card.append(grid);
+    }
+    const hand = p.top ? tops.filter(x => x.lines && x.lines.length) : [];
+    if (hand.length) {
+      const hc = el("div", "hc");
+      const h5 = el("h5");
+      h5.append(ico("hands-club", "sm"), document.createTextNode((n.top && n.top.title) || "手和杆"));
+      hc.append(h5);
+      for (const x of hand) for (const l of [...x.lines, ...(x.club ? [x.club] : [])]) { const q = el("p"); q.append(vtag(x.view), document.createTextNode(l)); hc.append(q) }
+      if (n.top && n.top.note) hc.append(el("p", "mute small", n.top.note));
+      card.append(hc);
+    }
+    const shown = cs.filter(c => c.status === "problem" || c.status === "watch");
+    if (shown.length) { const list = el("div"); list.append(...shown.map(row)); card.append(list) }
+    if (sheet.count(p) && !(p.oneView && !cs.length)) {
+      const b = el("button", "every");
+      b.append(ico("every-swing"), document.createTextNode("看每一杆"), el("small", null, sheet.count(p)));
+      b.onclick = () => sheet.open(p.id);
+      card.append(b);
+    }
+    const ok = cs.filter(c => c.status === "ok"), ex = cs.filter(c => c.status === "excluded");
+    if (ok.length) { const b = el("div"); b.append(...ok.map(row)); card.append(fold(`合格 ${ok.length} 项`, b)) }
+    if (ex.length) { const b = el("div"); b.append(...ex.map(row)); card.append(fold(`这次没评 ${ex.length} 项`, b)) }
+    p3.append(card);
+  }
+}
+
+// The every-swing sheet: one phase's swings per camera, each with its numbers; tap one to play it slowly.
+function swingSheet(doc, rowOf) {
+  const list = doc.swings || [];
+  const byView = { face_on: list.filter(s => s.view === "face_on"), down_the_line: list.filter(s => s.view === "down_the_line") };
+  const has = (video, swing) => list.some(s => s.video === video && s.swing === swing);
+  const name = c => ((rowOf[c.id] || {}).title || c.label).replace(/^(站位|顶点|击球|收杆|上杆)/, "");
+  const fmt = (c, x) => c.id === "top_shaft_level" ? (x >= 0 ? "未到水平 " : "过水平 ") + Math.abs(x).toFixed(1) + "°"
+    : c.id === "top_shaft_target" ? (x ? "指向目标" : "背离目标") : c.unit === "deg" ? x.toFixed(1) + "°" : c.unit === "s" ? x.toFixed(2) + " 秒"
+    : /share/.test(c.unit) ? Math.round(x * 100) + "%" : x.toFixed(2);
+  function value(c, s) {
+    const v = (c.views || []).find(v => v.video === s.video);
+    const i = v && v.swing_ids ? v.swing_ids.indexOf(s.swing) : -1;
+    if (i < 0) return null;
+    return { x: v.values[i], out: outsideBand(c, v.values[i], v.pro), pro: v.pro };
+  }
+  const ph = id => PHASES.find(p => p.id === id);
+  const checksOf = (p, view) => doc.checks.filter(c => p.has(c) && (p.oneView || c.view === view) && c.status !== "excluded" && (c.views || []).length);
+  const sheet = el("div", "sheet");
+  sheet.setAttribute("role", "dialog");
+  document.body.append(sheet);
+  let state = { phase: "backswing", view: "face_on", only: false };
+  const close = () => { sheet.classList.remove("on"); document.documentElement.style.overflow = ""; sheet.querySelectorAll("video").forEach(v => v.pause()) };
+  function bar(title, back) {
+    const b = el("div", "sh-bar");
+    if (back) { const k = el("button", "back", "‹ 每一杆"); k.onclick = back; b.append(k) }
+    b.append(el("h4", null, title));
+    const x = el("button", "x", "×");
+    x.setAttribute("aria-label", "关闭");
+    x.onclick = close;
+    b.append(x);
+    return b;
+  }
+  const stillOf = (s, at) => s.stills[at] || s.stills.top || Object.values(s.stills)[0];
+  function showList() {
+    const p = ph(state.phase);
+    const views = ["face_on", "down_the_line"].filter(v => byView[v].length);
+    if (!views.includes(state.view)) state.view = views[0];
+    sheet.replaceChildren(bar(`${p.label} · 每一杆`));
+    const tabs = el("div", "tabs");
+    for (const v of views) {
+      const b = el("button", v === state.view ? "on" : null);
+      b.append(ico(VIEW_ICO[v], "sm"), document.createTextNode(`${VIEW[v]} ${byView[v].length} 杆`));
+      b.onclick = () => { state.view = v; showList() };
+      tabs.append(b);
+    }
+    sheet.append(tabs);
+    const cs = checksOf(p, state.view);
+    const only = el("label", "only");
+    const cb = el("input");
+    cb.type = "checkbox"; cb.checked = state.only;
+    cb.onchange = () => { state.only = cb.checked; showList() };
+    only.append(cb, ico("filter", "sm"), document.createTextNode(`只看有超出职业区间的杆 · 这一段${p.oneView ? "" : VIEW[state.view]}有 ${cs.length} 项检查`));
+    sheet.append(only);
+    for (const s of byView[state.view]) {
+      const vals = cs.map(c => ({ c, r: value(c, s) })).filter(x => x.r);
+      const bad = vals.filter(x => x.r.out).length;
+      if (state.only && !bad) continue;
+      const row = el("div", "sw");
+      const f = stillOf(s, p.at);
+      if (f) { const img = el("img"); img.loading = "lazy"; img.alt = ""; img.src = f; row.append(img) } else row.append(el("div", "noimg"));
+      const b = el("div", "sw-b"), t = el("div", "sw-t");
+      t.append(el("b", null, `第 ${s.no} 杆`), el("span", null, `视频 ${s.video_no}`));
+      if (vals.length) {
+        const tag = el("i", bad ? "bad" : "good");
+        tag.append(ico(bad ? "band-out" : "band-in", "xs"), document.createTextNode(bad ? `${bad} 项超出` : "都在区间里"));
+        t.append(tag);
+      }
+      const vs = el("div", "vals");
+      for (const { c, r } of vals) vs.append(el("span", r.out ? "out" : null, `${name(c)} ${fmt(c, r.x)}`));
+      if (!vals.length) vs.append(el("span", null, "这一杆这一段没有能测准的数"));
+      b.append(t, vs);
+      row.append(b);
+      row.onclick = () => play(s);
+      sheet.append(row);
+    }
+  }
+  function play(s) {
+    const p = ph(state.phase), all = byView[s.view], k = all.indexOf(s);
+    sheet.replaceChildren(bar(`${VIEW[s.view]} 第 ${s.no} 杆`, showList));
+    sheet.scrollTop = 0;
+    const box = el("div", "player");
+    const at = x => s.at[x] != null && s.clip_start != null ? s.at[x] - s.clip_start : null;
+    let v = null;
+    if (s.clip) {
+      v = el("video");
+      v.src = s.clip; v.muted = true; v.loop = true; v.playsInline = true;
+      v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", "");
+      const poster = stillOf(s, p.at);
+      if (poster) v.poster = poster;
+      v.addEventListener("loadedmetadata", () => { v.playbackRate = 0.25; v.play().catch(() => {}) });
+      box.append(v);
+    } else {
+      const img = el("img", "still");
+      img.src = stillOf(s, p.at) || "";
+      box.append(img);
+      box.append(el("p", "todo", "这一杆的视频没有保留，只能看定格。"));
+    }
+    const jump = el("div", "ctl");
+    for (const [pos, label, icon] of JUMPS) {
+      if (s.at[pos] == null || (!v && !s.stills[pos])) continue;
+      const b = el("button", pos === p.at ? "on" : null);
+      b.append(ico(icon), document.createTextNode(label));
+      b.onclick = () => {
+        if (v) { v.pause(); v.currentTime = at(pos) } else box.querySelector("img.still").src = s.stills[pos];
+        jump.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+      };
+      jump.append(b);
+    }
+    box.append(jump);
+    if (v) {
+      const sp = el("div", "ctl speed");
+      for (const [r, label, icon] of [[0.25, "慢放 1/4", "slow"], [0.5, "1/2", "slow"], [1, "原速", "play"]]) {
+        const b = el("button", r === 0.25 ? "on" : null);
+        b.append(ico(icon, "sm"), document.createTextNode(label));
+        b.onclick = () => {
+          v.playbackRate = r; v.play().catch(() => {});
+          jump.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+          sp.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+        };
+        sp.append(b);
+      }
+      box.append(sp);
+    }
+    const nav = el("div", "nav2");
+    const prev = el("button", null, k > 0 ? "‹ 上一杆" : ""), next = el("button", null, k < all.length - 1 ? "下一杆 ›" : "");
+    prev.onclick = () => { if (k > 0) play(all[k - 1]) };
+    next.onclick = () => { if (k < all.length - 1) play(all[k + 1]) };
+    nav.append(prev, next);
+    box.append(nav);
+    // This swing's numbers in every phase, the tapped phase first.
+    const pg = el("div", "pg");
+    for (const q of [p, ...PHASES.filter(x => x !== p)]) {
+      const rows = checksOf(q, s.view).map(c => ({ c, r: value(c, s) })).filter(x => x.r);
+      if (!rows.length) continue;
+      pg.append(el("h5", null, q.label));
+      for (const { c, r } of rows) {
+        const line = el("div", "pv"), l = el("span", null, name(c));
+        if (r.pro && r.pro.p10 != null) l.append(el("em", null, `职业 ${fmt(c, r.pro.p10)} 到 ${fmt(c, r.pro.p90)}`));
+        line.append(l, el("b", r.out ? "out" : "ok", fmt(c, r.x)));
+        pg.append(line);
+      }
+    }
+    box.append(pg);
+    sheet.append(box);
+  }
+  function open(phase, view, video, swing) {
+    state.phase = phase;
+    if (view) state.view = view;
+    sheet.classList.add("on");
+    document.documentElement.style.overflow = "hidden";
+    const s = video != null && list.find(x => x.video === video && x.swing === swing);
+    if (s) play(s); else showList();
+  }
+  function count(p) {
+    return ["face_on", "down_the_line"].filter(v => byView[v].length && (p.oneView || checksOf(p, v).length || p.pic !== false))
+      .map(v => `${VIEW[v]} ${byView[v].length} 杆`).join(" · ");
+  }
+  addEventListener("keydown", e => { if (e.key === "Escape") close() });
+  return { open, has, count };
+}
+
+function secHead(no, title, anchor, lead) {
+  const wrap = el("section", "part");
+  wrap.id = anchor;
+  const hd = el("div", "sec");
+  hd.append(ico(anchor), el("h2", null, title));
+  wrap.append(hd);
+  if (lead) wrap.append(el("p", "lead", lead));
+  return wrap;
+}
+
+function render(doc) {
+  renderOld(doc);
+  const n = doc.narrative;
+  const main = document.getElementById("main");
+  const old = [...main.children];
+  const byIdEl = id => document.getElementById(id);
+  const take = (sel, root = main) => root.querySelector(sel);
+  const hero = byIdEl("top");
+  const numsCard = old[1], basisCard = old[2];
+  const lookSec = byIdEl("lookalikes"), fdSec = byIdEl("findings"), chkSec = byIdEl("checks");
+  const photoSec = byIdEl("photos"), planSec = byIdEl("plan"), retestSec = byIdEl("retest"), unsureSec = byIdEl("uncertain");
+  const footer = take("footer");
+  main.textContent = "";
+  const checkOf = Object.fromEntries(doc.checks.map(c => [c.id, c]));
+  const parts = [];
+
+  // 1 结论: a cover. The photo carries the headline; a sheet over its foot carries the line, the score and counts.
+  const p1 = el("section", "part cover");
+  p1.id = "s-verdict";
+  hero.removeAttribute("id");
+  const pic = el("div", "cv-pic");
+  const heroImg = take(".ph img", hero);
+  if (heroImg) pic.append(heroImg);
+  const ctop = el("div", "cv-top");
+  const brand = el("span", "brand");
+  brand.append(document.querySelector(".cn-mark").cloneNode(true), el("b", null, "caddie note"));
+  ctop.append(brand);
+  const ctitle = el("div", "cv-title");
+  const pm = el("div", "pm");
+  pm.textContent = "Pro Max";
+  take("h1", hero).remove();
+  const nameRow = el("div", "cv-name");
+  nameRow.append(el("h1", null, "挥杆诊断报告"), el("span", "date", doc.session.label || doc.session.date || ""));
+  ctitle.append(pm, nameRow);
+  pic.append(ctop, ctitle);
+  const sheet = el("div", "cv-sheet");
+  const line = take(".line", hero);
+  if (line) sheet.append(line);
+  const stats = el("div", "cv-stats");
+  const ring = el("div", "ring");
+  const R = 42, L = 2 * Math.PI * R, ov = doc.scores.overall || 0;
+  const rs = svg("svg", { viewBox: "0 0 100 100" });
+  rs.append(svg("circle", { cx: 50, cy: 50, r: R, fill: "none", stroke: "#1E2B24", "stroke-width": 6 }),
+    svg("circle", { cx: 50, cy: 50, r: R, fill: "none", stroke: C.accent, "stroke-width": 6, "stroke-linecap": "round",
+      "stroke-dasharray": `${L * ov / 100} ${L}`, transform: "rotate(-90 50 50)" }));
+  const rc = el("div", "c");
+  rc.append(el("b", null, String(ov)), el("small", null, "综合"));
+  ring.append(rs, rc);
+  const cnt = s => doc.checks.filter(c => c.status === s).length;
+  const c3 = el("div", "counts3");
+  for (const [cls, v, label] of [["p", cnt("problem"), "问题"], ["w", cnt("watch"), "注意"], ["o", doc.checks.filter(c => c.counted && c.status === "ok").length, "合格"]]) {
+    const d = el("div", cls); d.append(el("b", null, String(v)), el("span", null, label)); c3.append(d);
+  }
+  stats.append(ring, c3);
+  sheet.append(stats);
+  if (n.findings.summary) {
+    const order = el("div", "order");
+    order.append(el("p", null, n.findings.summary));
+    sheet.append(order);
+  }
+  p1.append(pic, sheet);
+  parts.push(p1);
+
+  // 2 这次看了什么
+  const p2 = secHead(2, "这次看了什么", "s-basis");
+  const unsureItems = unsureSec ? take(".card", unsureSec) : null;
+  numsCard.append(
+    fold("数字怎么来的", el("p", null, basisCard.querySelector("p").textContent)),
+    unsureItems ? fold("这次没评的项目和原因", ...[...unsureItems.children]) : null);
+  numsCard.classList.add("flat");
+  p2.append(numsCard);
+  parts.push(p2);
+
+  // 3 你的挥杆现状: by phase, in swing order, both cameras at once
+  const p3 = secHead(3, "你的挥杆现状", "s-now", "一次挥杆分成六段，每段都从正面和侧面各看一遍；哪个角度没拍，那一段就只看拍了的那个。红色要改，橙色注意，绿色合格。");
+  nowSection(doc, p3);
+  parts.push(p3);
+
+  // 4 问题从哪里来
+  const p4 = secHead(4, "问题从哪里来", "s-why", n.findings.intro);
+  // The chain: the root problem first, then what it brings with it, each a link to its card below.
+  const chain = el("div", "chain");
+  const roleWordC = { root: "根源", downstream: "连带", later: "其后" };
+  n.findings.items.forEach((f, i) => {
+    const a = el("a", "ch-i " + f.role);
+    a.href = "#fd-" + f.id;
+    const node = el("span", "ch-n", f.no);
+    const tx = el("span", "ch-t");
+    tx.append(el("b", null, f.title));
+    if (f.sub) tx.append(el("em", null, f.sub));
+    a.append(node, tx);
+    chain.append(a);
+  });
+  p4.append(chain);
+  const lk = lookSec && take(".card.lk", lookSec);
+  if (lk) {
+    const v = n.lookalikes.views[0];
+    const names = v.rows.map(r => r.name).join("、");
+    const card = el("div", "card look flat");
+    card.append(el("p", null, `按站位的姿势挑出来：${names}。下面每条问题都拿最像你的那位对照。`));
+    card.append(fold("看这几位职业和你的对比", lk));
+    p4.append(card);
+  }
+  const fd = take(".card.fd", fdSec);
+  const roleWord = { root: "根源", downstream: "连带", later: "其后" };
+  for (const it of [...fd.querySelectorAll(".fd-i")]) {
+    const role = ["root", "downstream", "later"].find(r => it.classList.contains(r));
+    const tdiv = take(":scope > div", it);
+    const ex = take(".explain", it);
+    const detail = take(":scope > div > p", it);
+    if (ex) {
+      const cmp = take(".cmp", ex);
+      const extra = [...ex.children].filter(x => x !== cmp);
+      if (cmp) it.append(cmp);
+      it.append(fold("看完整讲解和每一杆", detail, ...extra));
+      ex.remove();
+    } else if (detail) {
+      it.append(fold("看完整讲解", detail));
+    }
+  }
+  p4.append(fd);
+  parts.push(p4);
+
+  // 5 怎么改、怎么练
+  const p5 = secHead(5, "怎么改、怎么练", "s-fix", n.plan && n.plan.intro);
+  // Two weeks, six sessions, as a path: the last one is the retest.
+  if (n.plan && n.plan.sessions && n.plan.sessions.length) {
+    const path = el("div", "card path");
+    const hd = el("div", "pa-hd");
+    hd.append(el("b", null, n.plan.sessions_title), el("a", null, "看每次怎么练"));
+    hd.lastChild.href = "#sessions";
+    path.append(hd);
+    const weeks = [...new Set(n.plan.sessions.map(s => s.week))];
+    for (const w of weeks) {
+      const row = el("div", "pa-row");
+      row.append(el("span", "pa-w", `第 ${w} 周`));
+      const track = el("div", "pa-track");
+      for (const s of n.plan.sessions.filter(x => x.week === w)) {
+        const last = s === n.plan.sessions[n.plan.sessions.length - 1];
+        const st = el("a", "pa-s" + (last ? " end" : ""));
+        st.href = "#sessions";
+        st.append(el("span", "pa-n", String(s.n)), el("span", "pa-tl", s.tools));
+        track.append(st);
+      }
+      row.append(track);
+      path.append(row);
+    }
+    p5.append(path);
+  }
+  const toolCard = id => planSec && planSec.querySelector("#tool-" + id);
+  const used = new Set();
+  const dress = (t, card) => {
+    const img = el("img", "tool-art");
+    img.loading = "lazy";
+    img.src = `tools/${t.id}.jpg`;
+    img.alt = "";
+    img.onerror = () => img.remove();
+    card.prepend(img);
+    const lead = take(":scope > p", card);
+    if (lead) lead.classList.add("why");
+    const pics = take(".tool-pics", card);
+    if (pics) card.append(fold("在你自己的画面上看怎么摆", pics));
+    const pass = t.pass;
+    if (pass) { const p = el("p", "pass"); p.append(el("b", null, "过关："), document.createTextNode(pass)); card.insertBefore(p, take(".fold", card) || null) }
+    return card;
+  };
+  const orderWord = { root: "先改", downstream: "接着", later: "最后" };
+  for (const f of n.findings.items) {
+    const block = el("div", "fix");
+    const hd = el("div", "fix-hd");
+    hd.append(el("h3", null, f.title));
+    block.append(hd);
+    const change = (f.detail || "").match(/改的时候[^。]*。/);
+    if (change) block.append(el("p", "change", change[0]));
+    const tools = (n.plan ? n.plan.tools : []).filter(t => t.findings && t.findings.includes(f.id) && !used.has(t.id));
+    for (const t of tools) {
+      used.add(t.id);
+      const card = toolCard(t.id);
+      if (card) block.append(dress(t, card));
+    }
+    p5.append(block);
+  }
+  const rest = (n.plan ? n.plan.tools : []).filter(t => !used.has(t.id));
+  for (const t of rest) {
+    const card = toolCard(t.id);
+    if (!card) continue;
+    const block = el("div", "fix");
+    const hd = el("div", "fix-hd");
+    hd.append(el("h3", null, "自己核对"));
+    block.append(hd, dress(t, card));
+    p5.append(block);
+  }
+  const ss = planSec && [...planSec.querySelectorAll(":scope > .card")].find(c => take(".ss", c));
+  if (ss) {
+    const card = el("div", "card");
+    const sf = fold(n.plan.sessions_title, ...[...ss.children].slice(1));
+    sf.id = "sessions";
+    card.append(sf);
+    p5.append(card);
+  }
+  parts.push(p5);
+
+  // 6 怎么验收
+  if (retestSec) {
+    const p6 = secHead(6, "怎么验收", "s-retest", take(".lead", retestSec) && take(".lead", retestSec).textContent);
+    const rc = take(".card", retestSec);
+    for (const lb of rc.querySelectorAll(".rt-i .lb")) {
+      lb.classList.add("trio");
+      for (const sp of lb.children) {
+        const t = sp.textContent, i = t.indexOf(" ");
+        if (i < 0) continue;
+        sp.textContent = "";
+        sp.append(t.slice(0, i), el("b", null, t.slice(i + 1)));
+      }
+    }
+    rc.querySelectorAll(".rt-i").forEach((it, i) => {
+      const r = n.retest.items[i], t = r && doc.retest.find(x => x.check === r.check);
+      const old = it.querySelector(":scope > svg");
+      if (!t || !old) return;
+      const target = t.target_max != null ? t.target_max : t.target_min;
+      const pro = t.pro_p50 != null ? t.pro_p50 : t.pro_edge;
+      const [lo, hi] = axis([t.now, target, pro]);
+      const X = x => 14 + (x - lo) / (hi - lo) * 312;
+      const g = svg("svg", { viewBox: "0 0 340 46", class: "goal" });
+      g.append(svg("line", { x1: 4, x2: 336, y1: 18, y2: 18, stroke: "#26332C", "stroke-width": 1 }));
+      const a = Math.min(X(target), X(pro)), b = Math.max(X(target), X(pro));
+      g.append(svg("rect", { x: a, y: 13, width: Math.max(2, b - a), height: 10, rx: 5, fill: "#1F3A24" }));
+      const dir = Math.sign(X(target) - X(t.now)) || 1;
+      const x1 = X(t.now) + dir * 9, x2 = X(target) - dir * 10;
+      g.append(svg("line", { x1, x2, y1: 18, y2: 18, stroke: "#F07A5E", "stroke-width": 1.5, "stroke-dasharray": "3 4", "stroke-linecap": "round" }));
+      g.append(svg("path", { d: `M${x2 - dir * 6} 13.5L${x2} 18L${x2 - dir * 6} 22.5`, fill: "none", stroke: "#F07A5E", "stroke-width": 1.5, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      g.append(svg("circle", { cx: X(pro), cy: 18, r: 5.5, fill: "#6FA8F0", stroke: "#131D18", "stroke-width": 1.5 }));
+      g.append(svg("circle", { cx: X(target), cy: 18, r: 6.5, fill: "#9BE15D", stroke: "#131D18", "stroke-width": 1.5 }));
+      g.append(svg("circle", { cx: X(t.now), cy: 18, r: 6.5, fill: "#F07A5E", stroke: "#131D18", "stroke-width": 1.5 }));
+      for (const [x, word, cls] of []) {
+        const tx = svg("text", { x, y: 42, "text-anchor": "middle", class: cls });
+        tx.textContent = word;
+        g.append(tx);
+      }
+      old.replaceWith(g);
+    });
+    p6.append(rc);
+    parts.push(p6);
+  }
+
+  // 附录
+  const p7 = el("section", "part");
+  p7.id = "s-more";
+  const card = el("div", "card more flat");
+  const grip = photoSec ? [...photoSec.querySelectorAll(":scope > .card")].find(c => take("h3", c).textContent === "握杆") : null;
+  card.append(fold("全部检查明细（按机位）", ...[...chkSec.querySelectorAll(":scope > .card")]));
+  if (grip) card.append(fold("握杆照片", ...[...grip.children].slice(1)));
+  card.append(fold("关于这份报告", footer));
+  p7.append(card);
+  parts.push(p7);
+
+  const sign = el("div", "sign");
+  const lu = el("div", "lock-up");
+  lu.append(document.querySelector(".cn-mark").cloneNode(true), el("span", null, "caddie note"));
+  sign.append(lu, el("p", null, "逐帧看动作，专业可对比"));
+  parts.push(sign);
+  main.append(...parts);
+
+  // The section bar.
+  const bar = document.querySelector(".secbar");
+  const names = [["s-verdict", "结论"], ["s-basis", "依据"], ["s-now", "现状"], ["s-why", "原因"], ["s-fix", "怎么练"], ["s-retest", "验收"], ["s-more", "附录"]];
+  bar.textContent = "";
+  const links = {};
+  for (const [id, name] of names) {
+    if (!byIdEl(id)) continue;
+    const a = el("a", null, name);
+    a.href = "#" + id;
+    links[id] = a;
+    bar.append(a);
+  }
+  let current = null;
+  const mark = () => {
+    const y = innerHeight * 0.3;
+    let at = Object.keys(links)[0];
+    for (const id of Object.keys(links)) if (byIdEl(id).getBoundingClientRect().top <= y) at = id;
+    if (at === current) return;
+    current = at;
+    Object.values(links).forEach(a => a.classList.remove("on"));
+    links[at].classList.add("on");
+    moveInd(links[at]);
+  };
+  const ind = el("span", "ind");
+  bar.append(ind);
+  const moveInd = a => { ind.style.left = a.offsetLeft + "px"; ind.style.width = a.offsetWidth + "px" };
+  addEventListener("resize", () => current && moveInd(links[current]));
+  const head = document.querySelector(".bar");
+  addEventListener("scroll", () => { mark(); head.classList.toggle("scrolled", scrollY > 8) }, { passive: true });
+  mark();
+
+  // A link into a fold opens it first.
+  const openTo = id => {
+    const t = id && document.getElementById(id);
+    if (!t) return;
+    if (t.tagName === "DETAILS") t.open = true;
+    for (let p = t.parentElement; p; p = p.parentElement) if (p.tagName === "DETAILS") p.open = true;
+  };
+  document.addEventListener("click", e => {
+    const a = e.target.closest("a[href^='#']");
+    if (a) openTo(a.getAttribute("href").slice(1));
+  });
+  openTo(location.hash.slice(1));
+}
+
+function fail(msg) {
+  const main = document.getElementById("main");
+  main.textContent = "";
+  main.append(el("p", "empty", msg));
+}
+
+function start() {
+  if (window.caddieReportDoc) return render(window.caddieReportDoc);
+  fetch("report_doc.json").then(r => r.json()).then(render).catch(() => fail("没有找到报告数据。"));
+}
+
+if (window.caddieReportDoc) {
+  start();
+} else {
+  const s = document.createElement("script");
+  s.src = "report_doc.js";
+  s.onload = start;
+  s.onerror = start;
+  document.head.append(s);
+}
+</script>
+</body>
+</html>
