@@ -863,7 +863,7 @@ function figure(item, caption, opts) {
       if (pa && pb) s.append(svg("line", { x1: pa[0], y1: pa[1], x2: pb[0], y2: pb[1], stroke: "#FFFFFF", "stroke-opacity": 0.7,
         "stroke-width": 1.1, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" }));
     }
-    for (const n of Object.keys(j)) { const p = P(n); if (p && n !== "mid_hip" && n !== "mid_shoulder") dot(p, 0.8, "rgba(255,255,255,.85)") }
+    for (const n of Object.keys(j)) { const p = P(n); if (p && n !== "mid_hip" && n !== "mid_shoulder" && !n.startsWith("ref_")) dot(p, 0.8, "rgba(255,255,255,.85)") }
   }
   const out = outside(item);
   const col = out === true ? ON.bad : out === false ? ON.good : ON.plain;
@@ -895,6 +895,19 @@ function figure(item, caption, opts) {
     if (h && k) line(h, k, CLUB, "", 2.6);
     if (k) dot(k, 1.5, CLUB);
     if (h) { dot(h, 2.2, "rgba(0,0,0,.45)"); dot(h, 1.7, CLUB) }
+  } else if (item.overlay === "head_rise") {
+    // A level line where the head was at address; on a later moment an arrow from it to the head: up is rising.
+    const head = P("head"), ref = P("ref_head") || (item.phase === "address" ? head : null);
+    if (head && ref) {
+      // The arrow stands at the line's far end, beside the face, not over it.
+      const w = torso * 0.55, x = Math.min(78, Math.max(head[0], ref[0]) + w);
+      line([Math.min(head[0], ref[0]) - w * 0.6, ref[1]], [x, ref[1]], ON.ref, dash, 1.8);
+      if (Math.abs(head[1] - ref[1]) > 0.6) {
+        arrow([x, ref[1]], [x, head[1]], col);
+        line([head[0], head[1]], [x, head[1]], col, "1 2", 1.2);
+      }
+      dot(head, 1.5, item.phase === "address" ? ON.ref : col);
+    }
   } else if (item.overlay === "hip_line") {
     line(P("lead_hip"), P("trail_hip"), col);
   } else if (item.overlay === "pelvis_ruler") {
@@ -1144,7 +1157,7 @@ function explain(doc, check, hl, fid) {
     }
     if (grid) {
       const t = el("div", "rich-t");
-      t.append(el("b", null, "同一阶段，一帧一帧对照"), el("span", null, "白线是骨架；彩色是这一项量的东西，红色在职业区间外。"));
+      t.append(el("b", null, "同一阶段，一帧一帧对照"), el("span", null, gridLegend(doc, hl)));
       rich.append(t, grid);
     }
     const proof = proofGrid(doc, fid);
@@ -1304,6 +1317,19 @@ function duet(lp, proName) {
     seen = v; tick();
   });
   return box;
+}
+
+// What the grid's marks mean, said only for the marks it draws: a check without a shape has none to explain.
+const LEGEND = {
+  head_rise: "白线是骨架。你那一排的蓝色虚线是站位时头的高度，箭头从虚线指到这一刻的头：朝上是头升高，朝下是头压低；红色在职业区间外，绿色在区间里。数字按躯干长度算，0.10 就是一成躯干那么长。",
+  trail_leg_angle: "白线是骨架。彩色三角是右腿髋、膝、踝，虚线是髋到踝的直线，三角越扁膝盖越直；红色在职业区间外，绿色在区间里。",
+  torso_tilt: "白线是骨架。蓝色虚线是铅垂线，彩色扇形是上身偏开的角度；红色在职业区间外，绿色在区间里。",
+  pelvis_ruler: "白线是骨架。两脚之间是标尺，蓝色虚线是两脚正中，彩色色块和箭头是骨盆离正中多远；红色在职业区间外，绿色在区间里。",
+  hip_line: "白线是骨架，彩色线是两髋的连线；红色在职业区间外，绿色在区间里。",
+};
+function gridLegend(doc, hl) {
+  const o = (media(doc, { who: "you", check: hl.check, pick: "typical" }).find(m => m.overlay) || {}).overlay;
+  return LEGEND[o] || "白线是骨架。这一项没有画在图上，看图下的数字和下面的分布条。";
 }
 
 // The finding's moments of her swing and the pro's, the same size, skeleton under the measured shape.
